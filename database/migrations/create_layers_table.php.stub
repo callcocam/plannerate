@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('layers', function (Blueprint $table) {
             $table->ulid('id')->primary();
+            $table->ulid('tenant_id')->nullable();
             $table->foreignUlid('user_id')->nullable()->index();
-            $table->foreignUlid('tenant_id')->constrained()->cascadeOnDelete();
             $table->foreignUlid('segment_id')->constrained()->cascadeOnDelete(); 
             $table->foreignUlid('product_id')->constrained()->cascadeOnDelete(); // Produto
             $table->integer('height')->nullable();  // Altura em centímetros

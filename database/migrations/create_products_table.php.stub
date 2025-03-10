@@ -17,7 +17,7 @@ return new class extends Migration
     {
         Schema::create('products', function (Blueprint $table) {
             $table->ulid('id')->primary();
-            $table->foreignUlid('tenant_id')->constrained()->cascadeOnDelete();
+            $table->ulid('tenant_id')->nullable();
             $table->foreignUlid('user_id')->nullable()->index();
             $table->foreignUlid('category_id')->constrained(); 
             $table->foreignUlid('image_id')->nullable()->constrained();

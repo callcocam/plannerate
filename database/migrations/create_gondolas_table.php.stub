@@ -15,7 +15,7 @@ return new class extends Migration
     {
         Schema::create('gondolas', function (Blueprint $table) {
             $table->ulid('id')->primary();
-            $table->foreignUlid('tenant_id')->constrained()->cascadeOnDelete();
+            $table->ulid('tenant_id')->nullable();
             $table->foreignUlid('user_id')->nullable()->index();
             $table->string('name');
             $table->string('slug')->unique()->nullable();

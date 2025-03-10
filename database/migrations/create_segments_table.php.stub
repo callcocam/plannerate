@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('segments', function (Blueprint $table) { 
             $table->ulid('id')->primary();
+            $table->ulid('tenant_id')->nullable();
             $table->foreignUlid('user_id')->nullable()->index();
-            $table->foreignUlid('tenant_id')->constrained()->cascadeOnDelete();
             $table->foreignUlid('shelf_id')->constrained()->cascadeOnDelete();
             $table->integer('width')->nullable();  // Largura em centímetros
             $table->integer('ordering')->default(0)->nullable(); // Ordem de exibição/posição
