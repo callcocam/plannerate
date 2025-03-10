@@ -1,0 +1,38 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('shelves', function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->foreignUlid('user_id')->nullable()->index();
+            $table->foreignUlid('tenant_id')->constrained()->cascadeOnDelete();
+            $table->foreignUlid('section_id')->constrained()->cascadeOnDelete();
+            $table->string('code', 50)->unique()->nullable();
+            $table->integer('height')->nullable();  // Altura em centímetros
+            $table->integer('depth')->nullable();  // Profundidade em centímetros
+            $table->integer('shelf_qty')->default(1)->nullable(); // Quantidade de prateleiras
+            $table->integer('ordering')->default(0)->nullable(); // Ordem de exibição/posição
+            $table->integer('position')->default(0)->nullable(); // Posição vertical em centímetros
+            $table->enum('status', ['draft', 'published'])->default('draft')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('shelves');
+    }
+};
