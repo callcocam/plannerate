@@ -8,7 +8,7 @@
 
 namespace Callcocam\Plannerate\Rules;
 
-use App\Models\Layer;
+use Callcocam\Plannerate\Models\Layer;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 

@@ -8,7 +8,7 @@
 
 namespace Callcocam\Plannerate\Rules;
 
-use App\Models\Segment;
+use Callcocam\Plannerate\Models\Segment;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 

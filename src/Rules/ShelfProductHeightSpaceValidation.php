@@ -8,8 +8,8 @@
 
 namespace Callcocam\Plannerate\Rules;
 
-use App\Models\Product;
-use App\Models\Shelf;
+use Callcocam\Plannerate\Models\Product;
+use Callcocam\Plannerate\Models\Shelf;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 
