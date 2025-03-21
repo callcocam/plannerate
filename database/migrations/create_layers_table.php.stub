@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Callcocam\Plannerate\Enums\LayerStatus;
 
 return new class extends Migration
 {
@@ -21,7 +22,8 @@ return new class extends Migration
             $table->integer('quantity')->default(1)->nullable(); // Quantidade
             $table->integer('spacing')->default(0)->nullable(); // Espaçamento entre as camadas
             $table->json('settings')->nullable(); // Configurações
-            $table->enum('status', ['draft', 'published'])->default('draft')->nullable();
+            $table->enum('status', array_column(LayerStatus::cases(), 'value'))
+            ->default(LayerStatus::DRAFT->value);
             $table->timestamps();
             $table->softDeletes();
         });
