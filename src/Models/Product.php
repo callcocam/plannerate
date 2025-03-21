@@ -7,10 +7,10 @@
  */
 
 namespace Callcocam\Plannerate\Models;
-
-use App\Models\Tenant;
+ 
 use App\Models\User;
 use Callcocam\Plannerate\Enums\ProductStatus;
+use Callcocam\Raptor\Models\Tenant;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;

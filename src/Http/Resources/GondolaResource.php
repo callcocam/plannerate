@@ -7,8 +7,7 @@
  */
 
 namespace Callcocam\Plannerate\Http\Resources;
-
-use App\Http\Resources\SectionResource;
+ 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 

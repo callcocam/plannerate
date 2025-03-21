@@ -7,12 +7,12 @@
  */
 
 namespace Callcocam\Plannerate\Models;
-
-use App\Core\Concerns\Sluggable\HasSlug;
-use App\Core\Concerns\Sluggable\SlugOptions;
-use App\Core\Landlord\BelongsToTenants;
-use App\Models\Tenant;
+ 
 use Callcocam\Plannerate\Enums\GondolaStatus;
+use Callcocam\Raptor\Core\Concerns\Sluggable\HasSlug;
+use Callcocam\Raptor\Core\Concerns\Sluggable\SlugOptions;
+use Callcocam\Raptor\Core\Landlord\BelongsToTenants;
+use Callcocam\Raptor\Models\Tenant;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;

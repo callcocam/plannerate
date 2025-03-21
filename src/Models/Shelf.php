@@ -8,7 +8,7 @@
 
 namespace Callcocam\Plannerate\Models;
 
-use App\Core\Landlord\BelongsToTenants;
+use Callcocam\Raptor\Core\Landlord\BelongsToTenants;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;

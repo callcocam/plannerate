@@ -8,10 +8,10 @@
 
 namespace Callcocam\Plannerate\Models;
 
-use App\Core\Concerns\Sluggable\HasSlug;
-use App\Core\Concerns\Sluggable\SlugOptions;
-use App\Enums\CategoryStatus;
-use App\Models\Tenant;
+use Callcocam\Plannerate\Enums\CategoryStatus;
+use Callcocam\Raptor\Core\Concerns\Sluggable\HasSlug;
+use Callcocam\Raptor\Core\Concerns\Sluggable\SlugOptions;
+use Callcocam\Raptor\Models\Tenant;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;

@@ -8,9 +8,9 @@
 
 namespace Callcocam\Plannerate\Models;
 
-use App\Enums\StoreStatus;
-use App\Models\Tenant;
-use App\Models\Traits\HasAddresses;
+use Callcocam\Plannerate\Enums\StoreStatus;
+use Callcocam\Raptor\Models\Tenant;
+use Callcocam\Raptor\Models\Traits\HasAddresses;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
