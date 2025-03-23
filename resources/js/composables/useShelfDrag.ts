@@ -64,13 +64,10 @@ export default function useShelfDrag({
     const updateShelfPosition = (clientY: number) => {
         // Inverte a direção do movimento usando a diferença de posição do mouse
         const deltaY = (startY.value - clientY) / scaleFactor.value;
-
         // Calcula a nova posição
-        let newPosition = originalPosition.value + deltaY;
-
+        let newPosition = parseFloat(originalPosition.value) + deltaY;
         // Limita dentro da gôndola
         newPosition = Math.max(props.gondola.base_height, Math.min(newPosition, props.gondola.height - props.gondola.shelf_height));
-
         // Atualiza a posição da prateleira no estado local
         shelfPosition.value = newPosition;
     };

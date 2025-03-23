@@ -230,7 +230,7 @@ const alignShelf = () => {
     // Calcula a posição alinhada ao furo
     const alignedPosition = baseHeight + holes * holeSpacing;
 
-    shelfPosition.value = alignedPosition;
+    shelfPosition.value = alignedPosition; 
 
     // Evita atualizações desnecessárias se a mudança for menor que 1
     if (Math.abs(minUpatePosition.value - shelfPosition.value) < 1) return;
@@ -263,9 +263,7 @@ const {
     onMouseDown,      // Inicia arrasto com mouse
     onTouchStart,     // Inicia arrasto com toque
     onDragOver,       // Manipula eventos durante arrasto sobre a prateleira
-    onDragLeave,      // Manipula saída do arrasto
-    handleShelfClick, // Manipula cliques na prateleira
-    removeProduct     // Remove um produto da prateleira
+    onDragLeave,      // Manipula saída do arrasto 
 } = useShelfDrag({
     props,
     shelfPosition,

@@ -39,8 +39,8 @@ const layerRef = ref<HTMLElement | null>(null);
 const product = computed(() => {
     return props.layer.product;
 });
-
-const layerSettings = ref(props.layer.settings ? JSON.parse(props.layer.settings) : {});
+console.log('Layer:', props);
+const layerSettings = ref(props.layer?.settings ? JSON.parse(props.layer.settings) : {});
 
 // Track alignment settings
 const horizontalAlignment = ref(layerSettings.value?.horizontal_alignment || 'left');

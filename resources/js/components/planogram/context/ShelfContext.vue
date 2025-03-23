@@ -92,7 +92,7 @@ onMounted(() => {
 
     // Se não tiver configuração de distribuição, definir como 'proportional' por padrão
     if (!settings.distributionMode) {
-        updateShelfSettings({ distributionMode: 'proportional' });
+        // updateShelfSettings({ distributionMode: 'proportional' });
     }
 });
 

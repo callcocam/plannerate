@@ -38,8 +38,8 @@ class Section extends Model
     ];
 
     protected $casts = [
-        'height' => 'decimal:2',
-        'width' => 'decimal:2',
+        'height' => 'integer',
+        'width' => 'integer',
         'position' => 'integer',
         'status' => SectionStatus::class,
     ];

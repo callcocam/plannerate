@@ -48,7 +48,7 @@ class Layer extends Model
 
     public function product()
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(config('raptor.models.product', Product::class));
     }
 
     public function updateQuantity($amount, $isAbsolute = false)

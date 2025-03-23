@@ -7,14 +7,14 @@
  */
 
 namespace Callcocam\Plannerate\Http\Controllers;
-
-use App\Core\Landlord\Facades\Landlord;
+ 
 use App\Http\Controllers\Controller;
 use Callcocam\Plannerate\Http\Requests\Section\StoreSectionRequest;
 use Callcocam\Plannerate\Http\Requests\Section\UpdateSectionRequest;
 use Callcocam\Plannerate\Models\Gondola;
 use Callcocam\Plannerate\Models\Section;
 use Callcocam\Plannerate\Services\ShelfPositioningService;
+use Callcocam\Raptor\Core\Landlord\Facades\Landlord;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 

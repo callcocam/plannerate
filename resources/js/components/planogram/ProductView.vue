@@ -14,7 +14,9 @@ import { computed } from 'vue';
 import { Layer, Product, Shelf } from './planogram';
 
 const props = defineProps<{
-    product: Product;
+    product: Product & {
+        image_url?: string; 
+    };
     layer: Layer;
     shelf: Shelf;
     scaleFactor: number;
@@ -22,8 +24,8 @@ const props = defineProps<{
 
 // Compute the image URL from the product
 const productImageUrl = computed(() => {
-    if (props.product?.image?.image_url) {
-        return props.product.image.image_url;
+    if (props.product?.image_url) {
+        return props.product.image_url;
     }
     return null;
 });

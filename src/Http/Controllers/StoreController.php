@@ -7,13 +7,13 @@
  */
 
 namespace Callcocam\Plannerate\Http\Controllers;
-
-use App\Enums\AddressStatus;
+ 
 use App\Http\Controllers\Controller;
 use Callcocam\Plannerate\Enums\StoreStatus;
 use Callcocam\Plannerate\Http\Requests\StoreStoreRequest;
 use Callcocam\Plannerate\Http\Requests\UpdateStoreRequest;
 use Callcocam\Plannerate\Models\Store;
+use Callcocam\Raptor\Enums\AddressStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;

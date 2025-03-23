@@ -38,10 +38,10 @@ class Gondola extends Model
     ];
 
     protected $casts = [
-        'height' => 'int',
-        'width' => 'int',
-        'base_height' => 'int',
-        'scale_factor' => 'int',
+        'height' => 'integer',
+        'width' => 'integer',
+        'base_height' => 'integer',
+        'scale_factor' => 'integer',
         'status' => GondolaStatus::class,
     ];
 

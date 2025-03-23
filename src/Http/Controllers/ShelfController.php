@@ -8,11 +8,11 @@
 
 namespace Callcocam\Plannerate\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Models\Section;
-use App\Models\Shelf;
+use App\Http\Controllers\Controller; 
 use Callcocam\Plannerate\Http\Requests\Shelf\StoreShelfRequest;
 use Callcocam\Plannerate\Http\Requests\Shelf\UpdateShelfRequest;
+use Callcocam\Plannerate\Models\Section;
+use Callcocam\Plannerate\Models\Shelf;
 use Illuminate\Http\Request;
 
 class ShelfController extends Controller
