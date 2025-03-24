@@ -29,8 +29,7 @@ interface SectionProps {
 }
 
 // Definição das propriedades (props) do componente
-const props = defineProps<SectionProps>();
-console.log(props);
+const props = defineProps<SectionProps>(); 
 /**
  * Definição dos eventos emitidos pelo componente
  * Permite comunicação com componentes pai

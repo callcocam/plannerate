@@ -38,8 +38,7 @@ const selectedLayer = ref<Layer | null>(null);
 const layerRef = ref<HTMLElement | null>(null);
 const product = computed(() => {
     return props.layer.product;
-});
-console.log('Layer:', props);
+}); 
 const layerSettings = ref(props.layer?.settings ? JSON.parse(props.layer.settings) : {});
 
 // Track alignment settings
@@ -118,8 +117,7 @@ const layerStyle = computed(() => {
         const space = availableSpace.value;
         
         // Escolhe o modo de distribuição
-        const mode = distributionMode.value;
-        console.log('Mode:', mode);
+        const mode = distributionMode.value; 
         // Calcular espaço extra para este segmento baseado no modo de distribuição
         if (mode === 'equal' || mode === 'proportional') {
             let extraSpace = 0;
@@ -331,7 +329,7 @@ function updateLayerQuantity(newQuantity: number) {
         };
 
         delete data.settings;
-
+        // @ts-ignore
         router.put(route('layers.update', { layer: layer.id }), data, {
             preserveScroll: true,
             preserveState: true,
@@ -386,7 +384,7 @@ function updateSegmentQuantity(newQuantity: number) {
         // Remover propriedades desnecessárias, que podem causar erro na API
         delete data.settings;
         delete data.layer.settings;
-
+        // @ts-ignore
         router.put(route('segments.update', { segment: segment.id }), data, {
             preserveScroll: true,
             preserveState: true, // Manter o estado atual durante a requisição
