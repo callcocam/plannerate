@@ -8,7 +8,7 @@
 
 namespace Callcocam\Plannerate\Http\Controllers;
 
-use App\Http\Controllers\Controller; 
+use App\Http\Controllers\Controller;
 use Callcocam\Plannerate\Http\Requests\Shelf\StoreShelfRequest;
 use Callcocam\Plannerate\Http\Requests\Shelf\UpdateShelfRequest;
 use Callcocam\Plannerate\Models\Section;
@@ -70,26 +70,26 @@ class ShelfController extends Controller
     }
 
     /**
- * Atualiza a seção de uma prateleira
- *
- * @param  \Illuminate\Http\Request  $request
- * @param  \App\Models\Shelf  $shelf
- * @return \Illuminate\Http\Response
- */
-public function updateSection(Request $request, Shelf $shelf)
-{
-    $validated = $request->validate([
-        'section_id' => 'required|exists:sections,id',
-    ]);
+     * Atualiza a seção de uma prateleira
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Models\Shelf  $shelf
+     * @return \Illuminate\Http\Response
+     */
+    public function updateSection(Request $request, Shelf $shelf)
+    {
+        $validated = $request->validate([
+            'section_id' => 'required|exists:sections,id',
+        ]);
 
-    // Atualiza a seção da prateleira
-    $shelf->section_id = $validated['section_id'];
-    $shelf->save();
+        try {
+            // Atualiza a seção da prateleira
+            $shelf->section_id = $validated['section_id'];
 
-    return response()->json([
-        'message' => 'Prateleira movida com sucesso',
-        'shelf' => $shelf
-    ]);
-}
-
+            $shelf->save();
+            return redirect()->back()->with('success', 'Seção da prateleira atualizada com sucesso')->with('record', $shelf->load('section'));
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Seção não encontrada: ' . $e->getMessage());
+        }
+    }
 }

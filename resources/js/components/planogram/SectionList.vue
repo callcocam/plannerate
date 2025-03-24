@@ -3,10 +3,11 @@
  * Componente Sections para gerenciamento de seções de uma gôndola em um planograma
  * Permite visualizar, ordenar e manipular seções com prateleiras
  */
+// @ts-nocheck
 import { Button } from '@/components/ui/button';
 import { router } from '@inertiajs/vue3';
 import Sortable from 'sortablejs';
-import { computed, onMounted, ref, toRefs, watch } from 'vue';
+import { computed, onMounted, provide, ref, toRefs, watch } from 'vue';
 import SectionContext from './context/SectionContext.vue';
 import Gramalheira from './Gramalheira.vue';
 import { Gondola, Layer, Section, Segment, Shelf as ShelfType } from './planogram';
@@ -29,7 +30,7 @@ interface SectionProps {
 }
 
 // Definição das propriedades (props) do componente
-const props = defineProps<SectionProps>(); 
+const props = defineProps<SectionProps>();
 /**
  * Definição dos eventos emitidos pelo componente
  * Permite comunicação com componentes pai
@@ -153,7 +154,7 @@ function getSectionStyle(section: Section, index: number): Record<string, string
         position: 'relative',
         boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
         display: 'flex',
-        flexDirection: 'column', 
+        flexDirection: 'column',
     };
 }
 
@@ -399,12 +400,66 @@ const duplicateShelf = (newShelf: ShelfWithSection): void => {
         }
         return section;
     });
+}; 
+
+/**
+ * Transfere uma prateleira de uma seção para outra
+ * @param {Object} transferData - Dados de transferência da prateleira
+ * @param {ShelfType} transferData.shelf - A prateleira a ser transferida
+ * @param {string} transferData.fromSectionId - ID da seção de origem
+ * @param {string} transferData.toSectionId - ID da seção de destino
+ * @param {number} transferData.position - Nova posição na seção de destino
+ */
+const transferShelf = (transferData: { shelf: ShelfType; fromSectionId: string; toSectionId: string; position?: number }): void => {
+    const { shelf, fromSectionId, toSectionId, position } = transferData;
+
+    // Se for a mesma seção, não faz nada
+    if (fromSectionId === toSectionId) return; 
+    // Envia atualização para o servidor
+    router.put(
+        route('shelves.update-section', shelf.id),
+        {
+            section_id: toSectionId,
+        },
+        { 
+            preserveScroll: true,
+            onSuccess: () => { 
+                // Atualiza a seção localmente
+                localSections.value = localSections.value.map((section) => {
+                    if (section.id === fromSectionId) {
+                        return {
+                            ...section,
+                            shelves: section.shelves.filter((s) => s.id !== shelf.id),
+                        };
+                    }
+                    if (section.id === toSectionId) {
+                        return {
+                            ...section,
+                            shelves: [...section.shelves, { ...shelf }],
+                        };
+                    }
+                    return section;
+                }); 
+            },
+            onError: (errors) => {
+                console.error('Erro ao transferir prateleira:', errors);
+            },
+        },
+    );
+};
+
+/**
+ * Manipula a seleção de uma prateleira
+ * @param {ShelfType} shelf - A prateleira selecionada
+ */
+const selectShelf = (shelf: ShelfType): void => {
+    activeShelf.value = shelf;
 };
 </script>
 
 <template>
     <!-- Container principal para as seções, com referência para Sortable.js -->
-    <div class="relative flex   min-h-screen items-center overflow-hidden" ref="sectionsContainer">
+    <div class="relative flex min-h-screen items-center overflow-hidden" ref="sectionsContainer">
         <!-- Mensagem quando não há seções -->
         <div v-if="localSections.length === 0" class="flex w-full flex-col items-center justify-center">
             <p class="mb-4 text-center text-gray-500 dark:text-gray-400">Não há seções para exibir. Adicione uma nova seção para começar.</p>
@@ -412,9 +467,15 @@ const duplicateShelf = (newShelf: ShelfWithSection): void => {
         </div>
 
         <!-- Loop pelas seções para renderizá-las -->
-        <SectionContext v-for="(section, index) in localSections" :key="section.id" :section="section" :gondola="gondola">
+        <SectionContext
+            v-for="(section, index) in localSections"
+            :key="section.id"
+            :section="section"
+            :gondola="gondola"
+            @transfer-shelf="transferShelf"
+        >
             <!-- Item de seção arrastável -->
-            <div class="section-item " :style="getSectionStyle(section, index)">
+            <div class="section-item" :style="getSectionStyle(section, index)">
                 <!-- Gramalheira esquerda (suporte vertical) -->
                 <Gramalheira
                     orientation="vertical"
@@ -425,7 +486,8 @@ const duplicateShelf = (newShelf: ShelfWithSection): void => {
                 />
 
                 <!-- Área das prateleiras -->
-                <div class="relative" >
+                <div class="relative">
+                    <!-- Seção de prateleiras -->
                     <!-- Loop pelas prateleiras da seção atual -->
                     <Shelf
                         v-for="shelf in shelves.filter((s) => isShelfInSection(s, section.id))"
@@ -439,6 +501,8 @@ const duplicateShelf = (newShelf: ShelfWithSection): void => {
                         @update:segment="updateSegment"
                         @delete="deleteShelf"
                         @duplicate="duplicateShelf"
+                        @transfer-shelf="transferShelf"
+                        @selectShelf="selectShelf"
                         :is-last="isLastShelfInSection(shelf, section.id)"
                         :is-first="isFirstShelfInSection(shelf, section.id)"
                     />

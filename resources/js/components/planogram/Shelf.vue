@@ -6,13 +6,14 @@
     <ShelfContext
         :shelf="shelf"
         :gondola="gondola"
-        :shelfDirection="shelfDirection"
+        :shelfDirection="shelfDirection" 
         @update:shelf="$emit('update:shelf', $event)"
         @delete="$emit('delete', $event)"
         @duplicate="$emit('duplicate', $event)"
         @move="$emit('move', $event)"
         @align="alignShelf"
         @edit-product="openProductSettings = true"
+        @transfer="transferShelf"
     > 
         <!-- 
             Container principal da prateleira
@@ -26,14 +27,18 @@
                 { 'drop-target': isDropTarget },         /* Estilo quando é alvo de um drop */
                 { 'has-product': !!shelf.segments.length }, /* Estilo quando contém produtos */
                 { 'active-drop-zone': isDropTarget },    /* Estilo adicional para zona de drop ativa */
+                { 'draggable-shelf': true },
+                { 'shelf-selected': isSelected }, // Nova classe para indicar seleção
             ]"
             :style="shelfStyle(shelf)"                   
+            @click="onShelfClick"                  
             @mousedown="onMouseDown"                      
             @touchstart="onTouchStart"                   
             @dragenter.prevent="onDragOver"               
             @dragover.prevent="onDragOver"               
             @dragleave="onDragLeave"                    
-            @drop="onDrop"                    
+            @drop="onDrop"
+            draggable="true" 
         >
         <Move class="absolute -left-5 text-white cursor-pointer w-4 h-4 z-10 shelf-handle"/>
             <!-- 
@@ -72,7 +77,7 @@
  * Representa uma prateleira individual dentro de uma gôndola
  * Gerencia posicionamento, arrastar/soltar e interação com produtos/segmentos
  */
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch, inject } from 'vue';
 import useShelfDrag from './../../composables/useShelfDrag'; // Composable para lógica de drag & drop
 import ShelfContext from './context/ShelfContext.vue';
 import { Gondola, Layer, Product, Segment, Shelf } from './planogram';
@@ -87,6 +92,7 @@ import { Move } from 'lucide-vue-next';
  * @property {number} scaleFactor - Fator de escala para dimensionamento visual
  * @property {boolean} isFirst - Indica se é a primeira prateleira da seção
  * @property {boolean} isLast - Indica se é a última prateleira da seção
+ * @property {Array} localSections - Array com todas as seções disponíveis
  */
 const props = defineProps<{ 
     gondola: Gondola; 
@@ -94,7 +100,7 @@ const props = defineProps<{
     shelfDirection: string; 
     scaleFactor?: number; 
     isFirst: boolean; 
-    isLast: boolean 
+    isLast: boolean; 
 }>();
 
 /**
@@ -108,7 +114,8 @@ const emit = defineEmits([
     'move',           // Movimentação da prateleira
     'selectShelf',    // Seleção da prateleira
     'update:layer',   // Atualização de uma camada
-    'update:segment'  // Atualização de um segmento
+    'update:segment',  // Atualização de um segmento
+    'transfer-shelf'  // Transferência da prateleira para outra seção
 ]);
 
 // Variáveis reativas para controle da posição da prateleira
@@ -230,7 +237,7 @@ const alignShelf = () => {
     // Calcula a posição alinhada ao furo
     const alignedPosition = baseHeight + holes * holeSpacing;
 
-    shelfPosition.value = alignedPosition; 
+    shelfPosition.value = alignedPosition;
 
     // Evita atualizações desnecessárias se a mudança for menor que 1
     if (Math.abs(minUpatePosition.value - shelfPosition.value) < 1) return;
@@ -398,6 +405,30 @@ const onDrop = (event: DragEvent) => {
     }
 };
 
+// Modificar o evento de clique para emitir o evento selectShelf
+const onShelfClick = (event: MouseEvent) => {
+    // Evita propagação para não interferir com outros eventos
+    if (event.target === event.currentTarget) {
+        emit('selectShelf', props.shelf);
+    }
+};
+
+
+// Import activeShelf from provide/inject system
+const activeShelf = inject('activeShelf', ref(null) as any);
+
+// Track if this shelf is currently selected
+const isSelected = computed(() => {
+    return activeShelf && activeShelf.value && activeShelf.value?.id === props.shelf.id;
+});
+/**
+ * Transfere a prateleira para outra seção
+ * @param {Object} transferData - Dados para transferência
+ */
+const transferShelf = (transferData) => {
+    // Emite evento para o componente pai lidar com a transferência real
+    emit('transfer-shelf', transferData);
+};
 </script>
 
 <style scoped>
@@ -423,14 +454,6 @@ const onDrop = (event: DragEvent) => {
     padding: 2px 4px;
     border-radius: 3px;
     pointer-events: none; /* Permite cliques através do indicador */
-    white-space: nowrap;
-    z-index: 20;
-}
-
-/* Estilo global para o corpo durante arrasto de prateleira */
-:global(body.shelf-dragging) {
-    cursor: ns-resize !important;
-    user-select: none; /* Impede seleção de texto durante arrasto */
 }
 
 /* Estilo aplicado quando a prateleira é alvo de um drop */
@@ -503,7 +526,10 @@ const onDrop = (event: DragEvent) => {
     background-color: #4b5563; /* Cor base para light mode */
 }
 
-.shelf-container * {
-    box-sizing: border-box;
+/* Estilo para a prateleira selecionada */
+.shelf-selected {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+    z-index: 5;
 }
 </style>
