@@ -7,7 +7,7 @@
 import { Button } from '@/components/ui/button';
 import { router } from '@inertiajs/vue3';
 import Sortable from 'sortablejs';
-import { computed, onMounted, ref, toRefs, watch } from 'vue';
+import { computed, onMounted, ref, toRefs, watch, provide } from 'vue';
 import SectionContext from './context/SectionContext.vue';
 import Gramalheira from './Gramalheira.vue';
 import { Gondola, Layer, Section, Segment, Shelf as ShelfType } from './planogram';
@@ -50,8 +50,11 @@ const { sections, scaleFactor, baseHeight, shelfDirection } = toRefs(props);
 // Referência local para as seções, para evitar modificar as props diretamente
 const localSections = ref<Section[]>([]);
 
-// Import activeShelf from provide/inject system
-const activeShelf = ref(null) as any;
+// Estado para rastrear a prateleira atualmente selecionada
+const activeShelf = ref<ShelfType | null>(null);
+
+// Disponibiliza a prateleira ativa via provide/inject API
+provide('activeShelf', activeShelf);
 
 /**
  * Inicializa as seções locais no momento da montagem do componente
@@ -455,13 +458,34 @@ const transferShelf = (transferData: { shelf: ShelfType; fromSectionId: string; 
  * @param {ShelfType} shelf - A prateleira selecionada
  */
 const selectShelf = (shelf: ShelfType): void => {
+    // Define a prateleira ativa
     activeShelf.value = shelf;
+    
+    // Opcionalmente, emitir evento para componentes de nível superior
+    emit('select-shelf', shelf);
+};
+
+// Função para desselecionar todas as prateleiras
+const clearShelfSelection = () => {
+    activeShelf.value = null;
+};
+
+// Adicionar handler para cliques no container para limpar seleção
+const handleSectionContainerClick = (event) => {
+    // Verifica se o clique foi diretamente no container e não em uma prateleira
+    if (event.target === event.currentTarget) {
+        clearShelfSelection();
+    }
 };
 </script>
 
 <template>
     <!-- Container principal para as seções, com referência para Sortable.js -->
-    <div class="relative flex min-h-screen items-center overflow-hidden" ref="sectionsContainer">
+    <div 
+        class="relative flex min-h-screen items-center " 
+        ref="sectionsContainer"
+        @click="handleSectionContainerClick"
+    >
         <!-- Mensagem quando não há seções -->
         <div v-if="localSections.length === 0" class="flex w-full flex-col items-center justify-center">
             <p class="mb-4 text-center text-gray-500 dark:text-gray-400">Não há seções para exibir. Adicione uma nova seção para começar.</p>
@@ -514,7 +538,7 @@ const selectShelf = (shelf: ShelfType): void => {
                 <!-- Gramalheira direita (suporte vertical) -->
                 <Gramalheira
                     orientation="vertical"
-                    class="absolute right-0 top-0"
+                    class="absolute -right-1 top-0"
                     :style="contentGramalheiraStyle"
                     :gondola="gondola"
                     :scaleFactor="scaleFactor"

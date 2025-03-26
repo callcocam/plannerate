@@ -63,7 +63,7 @@ const getProductStyle = (index: number) => {
     return {
         // width: `${totalWidth / layerQuantity.value}px`,
         display: 'flex',
-        justifyContent: 'center',
+        justifyContent: 'space-between',
     };
 };
 

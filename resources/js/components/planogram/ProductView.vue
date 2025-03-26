@@ -60,7 +60,7 @@ const productStyle = computed(() => {
         if (distributionMode.value === 'equal' || distributionMode.value === 'proportional') {
             return {
                 ...style,
-                margin: 'auto', // Centraliza o produto dentro do espaço disponível
+                margin: '0', // Centraliza o produto dentro do espaço disponível
             };
         }
     }

@@ -70,6 +70,7 @@ const gramalheirHoleStyle = (hole: number) => {
         borderLeftWidth: '2px',
         borderRightWidth: '2px',
         borderStyle: 'solid',
+        zIndex: 10,
     };
 }; 
 </script>
