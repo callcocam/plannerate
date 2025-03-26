@@ -77,6 +77,7 @@ const gramalheirHoleStyle = (hole: number) => {
 
 <template>
     <div v-bind="delegatedProps" :class="cn('relative bg-gray-800 mx-auto', props.class)">
+        <slot />
         <template v-for="(hole, index) in gramalheirHoles" :key="index">
             <!-- Furo centralizado -->
             <!-- @vue-ignore -->

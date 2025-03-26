@@ -1,7 +1,7 @@
 <template>
     <div class="mx-auto w-full space-y-2 sm:px-6 lg:px-8">
         <!-- Card de Dimensões -->
-        <div class="dark:bg-gray-800 sticky top-0 z-50 border-b bg-white shadow-sm">
+        <div class="sticky top-0 z-50 border-b bg-white shadow-sm dark:bg-gray-800">
             <div class="p-4">
                 <div class="flex items-center justify-between">
                     <div class="flex flex-col items-center space-x-8 md:flex-row">
@@ -113,20 +113,26 @@
         </div>
 
         <!-- Área de Visualização -->
-        <div class="dark:bg-gray-800 mt-2 border-b-2 border-gray-300 bg-white shadow-sm dark:border-gray-800">
-            <div :style="containerStyle" class="mx-auto p-1 min-h-screen flex items-center justify-center">
-                <SectionList
-                    v-model:sections="sections"
-                    :scale-factor="scaleFactor"
-                    :base-height="Number(record.base_height)"
-                    @remove="handleSectionRemove"
-                    @add="showNewPlanogramModal = true"
-                    :gondola="record"
-                    shelf-direction="bottom"
-                    @select-shelf="handleShelfSelect"
-                    @update:layer="updateLayer"
-                    @update:segment="updateSegment"
-                />
+        <div class="mt-2 border-b-2 border-gray-300 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-800">
+            <div
+                :style="containerStyle"
+                class="mx-auto flex min-h-screen items-center justify-center border-2 border-gray-300 p-1 dark:border-gray-700"
+            >
+                <!-- Use o wrapper com alça de arrasto aqui -->
+                <MovableContainer :storage-id="'gondola-' + record.id">
+                    <SectionList
+                        v-model:sections="sections"
+                        :scale-factor="scaleFactor"
+                        :base-height="Number(record.base_height)"
+                        @remove="handleSectionRemove"
+                        @add="showNewPlanogramModal = true"
+                        :gondola="record"
+                        shelf-direction="bottom"
+                        @select-shelf="handleShelfSelect"
+                        @update:layer="updateLayer"
+                        @update:segment="updateSegment"
+                    />
+                </MovableContainer>
             </div>
         </div>
 
@@ -153,6 +159,7 @@ import { router } from '@inertiajs/vue3';
 import { ArrowLeftRight, Grid, Minus, Package, Plus } from 'lucide-vue-next';
 import { computed, ref, toRaw, watch } from 'vue';
 import AddPlanogramModal from './AddPlanogramModal.vue';
+import MovableContainer from './MovableContainer.vue';
 import ProductDrawer from './ProductDrawer.vue';
 import SectionList from './SectionList.vue';
 const props = defineProps({
@@ -210,7 +217,7 @@ function calculateWidth(width) {
 /**
  * Estilo do container principal, inclui a grade de fundo
  */
- const containerStyle = computed(() => {
+const containerStyle = computed(() => {
     const grid = calculateWidth(10); // Grid de 10cm
     const { record } = props;
     return {
@@ -219,7 +226,7 @@ function calculateWidth(width) {
             ? 'linear-gradient(to right, rgba(75, 85, 99, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(75, 85, 99, 0.3) 1px, transparent 1px)'
             : 'none',
         backgroundSize: showGrid.value ? `${grid}px ${grid}px` : 'auto',
-        width: `100%`,  
+        width: `100%`,
     };
 });
 const scaleFactor = ref(props.record.scale_factor);
@@ -347,9 +354,8 @@ function handleProductSelect(product) {
 
 // Função para atualizar a quantidade de layer no componente pai
 const updateLayer = (layer) => {
-    // Emitir evento para atualizar a prateleira no componente pai 
+    // Emitir evento para atualizar a prateleira no componente pai
     console.log('Quantidade de layer atualizada com sucesso');
-    
 };
 
 // Função para atualizar o segmento no componente pai

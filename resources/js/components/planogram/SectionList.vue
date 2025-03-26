@@ -7,11 +7,12 @@
 import { Button } from '@/components/ui/button';
 import { router } from '@inertiajs/vue3';
 import Sortable from 'sortablejs';
-import { computed, onMounted, ref, toRefs, watch, provide } from 'vue';
+import { computed, onMounted, ref, toRefs, watch, provide, nextTick } from 'vue';
 import SectionContext from './context/SectionContext.vue';
 import Gramalheira from './Gramalheira.vue';
 import { Gondola, Layer, Section, Segment, Shelf as ShelfType } from './planogram';
 import Shelf from './Shelf.vue';
+import { Move } from 'lucide-vue-next';
 
 /**
  * Interface que define as propriedades do componente
@@ -64,6 +65,11 @@ onMounted(() => {
     if (props.sections) {
         localSections.value = JSON.parse(JSON.stringify(props.sections));
     }
+    
+    // Inicializa o Sortable em um próximo ciclo para garantir que o DOM está pronto
+    nextTick(() => {
+        initializeSortable();
+    });
 });
 
 /**
@@ -113,35 +119,43 @@ let sortableInstance: Sortable | null = null;
 
 /**
  * Inicializa o Sortable.js para permitir arrastar e soltar seções
- * Configura o comportamento de reorganização das seções
  */
-onMounted(() => {
-    if (sectionsContainer.value) {
-        sortableInstance = Sortable.create(sectionsContainer.value, {
-            animation: 150, // Duração da animação em ms
-            ghostClass: 'opacity-50', // Classe aplicada ao elemento fantasma durante arrasto
-            handle: '.section-handle', // Seletor para o elemento que pode ser arrastado
-            draggable: '.section-item', // Seletor para elementos arrastáveis
-            // Callback quando o arrasto termina
-            onEnd: (event: Sortable.SortableEvent) => {
-                // Cria uma cópia da lista de seções
-                const sectionsList = [...localSections.value];
-                // Remove o item da posição antiga e o insere na nova posição
-                const movedItem = sectionsList.splice(event.oldIndex!, 1)[0];
-                sectionsList.splice(event.newIndex!, 0, movedItem);
-
-                // Atualiza a propriedade position de cada seção
-                sectionsList.forEach((section, index) => {
-                    section.position = index;
-                });
-
-                // Atualiza a referência local e emite o evento
-                localSections.value = sectionsList;
-                emit('update:sections', sectionsList);
-            },
-        });
+function initializeSortable() {
+    if (!sectionsContainer.value) return;
+    
+    // Limpar instância anterior se existir
+    if (sortableInstance) {
+        sortableInstance.destroy();
     }
-});
+    
+    // Criar nova instância do Sortable
+    sortableInstance = Sortable.create(sectionsContainer.value, {
+        animation: 150,
+        ghostClass: 'section-ghost', // Classe para o fantasma durante o arrasto
+        chosenClass: 'section-chosen', // Classe para o item escolhido
+        dragClass: 'section-drag', // Classe para o item enquanto arrastado
+        handle: '.section-drag-handle', // Alça para arrastar
+        draggable: '.section-item', // Seletor para itens arrastáveis
+        onEnd: (evt) => {
+            if (evt.oldIndex === undefined || evt.newIndex === undefined) return;
+            
+            // Cria uma cópia da lista de seções
+            const sectionsList = [...localSections.value];
+            
+            // Remove o item da posição antiga e o insere na nova posição
+            const movedItem = sectionsList.splice(evt.oldIndex, 1)[0];
+            sectionsList.splice(evt.newIndex, 0, movedItem);
+            
+            // Atualiza a propriedade position de cada seção
+            sectionsList.forEach((section, index) => {
+                section.position = index;
+            });
+            
+            // Atualiza a referência local
+            localSections.value = sectionsList;
+        },
+    });
+}
 
 /**
  * Calcula o estilo CSS para cada seção com base em suas propriedades
@@ -482,7 +496,7 @@ const handleSectionContainerClick = (event) => {
 <template>
     <!-- Container principal para as seções, com referência para Sortable.js -->
     <div 
-        class="relative flex min-h-screen items-center " 
+        class="relative flex min-h-screen items-center" 
         ref="sectionsContainer"
         @click="handleSectionContainerClick"
     >
@@ -493,79 +507,115 @@ const handleSectionContainerClick = (event) => {
         </div>
 
         <!-- Loop pelas seções para renderizá-las -->
-        <SectionContext
+        <div 
             v-for="(section, index) in localSections"
             :key="section.id"
-            :section="section"
-            :gondola="gondola"
-            @transfer-shelf="transferShelf"
+            class="section-item relative"
         >
-            <!-- Item de seção arrastável -->
-            <div class="section-item" :style="getSectionStyle(section, index)">
-                <!-- Gramalheira esquerda (suporte vertical) -->
-                <Gramalheira
-                    orientation="vertical"
-                    class="absolute top-0"
-                    :style="contentGramalheiraStyle"
-                    :gondola="gondola"
-                    :scaleFactor="scaleFactor"
-                    v-if="!index"
-                />
-
-                <!-- Área das prateleiras -->
-                <div class="relative">
-                    <!-- Seção de prateleiras -->
-                    <!-- Loop pelas prateleiras da seção atual -->
-                    <Shelf
-                        v-for="shelf in shelves.filter((s) => isShelfInSection(s, section.id))"
-                        :key="shelf.id"
+            <SectionContext
+                :section="section"
+                :gondola="gondola"
+                @transfer-shelf="transferShelf"
+            >
+                <!-- Item de seção arrastável -->
+                <div :style="getSectionStyle(section, index)">
+                    <!-- Alça de arrasto para poder arrastar a seção -->
+                    <div class="section-drag-handle">
+                        <Move class="h-4 w-4 cursor-grab" />
+                    </div>
+                    
+                    <!-- Gramalheira esquerda (suporte vertical) -->
+                    <Gramalheira
+                        orientation="vertical"
+                        class="absolute top-0"
+                        :style="contentGramalheiraStyle"
                         :gondola="gondola"
-                        :shelf="shelf"
-                        :shelf-direction="shelfDirection"
-                        :scale-factor="scaleFactor"
-                        @update:shelf="updateShelf"
-                        @update:layer="updateLayer"
-                        @update:segment="updateSegment"
-                        @delete="deleteShelf"
-                        @duplicate="duplicateShelf"
-                        @transfer-shelf="transferShelf"
-                        @selectShelf="selectShelf"
-                        :is-last="isLastShelfInSection(shelf, section.id)"
-                        :is-first="isFirstShelfInSection(shelf, section.id)"
+                        :scaleFactor="scaleFactor"
+                        v-if="!index"
+                    />
+
+                    <!-- Área das prateleiras -->
+                    <div class="relative">
+                        <!-- Seção de prateleiras -->
+                        <!-- Loop pelas prateleiras da seção atual -->
+                        <Shelf
+                            v-for="shelf in shelves.filter((s) => isShelfInSection(s, section.id))"
+                            :key="shelf.id"
+                            :gondola="gondola"
+                            :shelf="shelf"
+                            :shelf-direction="shelfDirection"
+                            :scale-factor="scaleFactor"
+                            @update:shelf="updateShelf"
+                            @update:layer="updateLayer"
+                            @update:segment="updateSegment"
+                            @delete="deleteShelf"
+                            @duplicate="duplicateShelf"
+                            @transfer-shelf="transferShelf"
+                            @selectShelf="selectShelf"
+                            :is-last="isLastShelfInSection(shelf, section.id)"
+                            :is-first="isFirstShelfInSection(shelf, section.id)"
+                        />
+                    </div>
+
+                    <!-- Gramalheira direita (suporte vertical) -->
+                    <Gramalheira
+                        orientation="vertical"
+                        class="absolute -right-1 top-0"
+                        :style="contentGramalheiraStyle"
+                        :gondola="gondola"
+                        :scaleFactor="scaleFactor"
                     />
                 </div>
-
-                <!-- Gramalheira direita (suporte vertical) -->
-                <Gramalheira
-                    orientation="vertical"
-                    class="absolute -right-1 top-0"
-                    :style="contentGramalheiraStyle"
-                    :gondola="gondola"
-                    :scaleFactor="scaleFactor"
-                />
-            </div>
-        </SectionContext>
+            </SectionContext>
+        </div>
     </div>
 </template>
 
 <style scoped>
 /* Estilo para os itens de seção */
 .section-item {
-    transition: all 0.2s ease; /* Transição suave para efeitos visuais */
+    transition: all 0.2s ease;
+    margin: 0 2px;
 }
 
-/* Efeito hover nos itens de seção */
-.section-item:hover {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Sombra mais pronunciada ao passar o mouse */
+/* Estilo para a alça de arrasto */
+.section-drag-handle {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    transform: translate(-50%, -40%);
+    z-index: 10;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #4b5563;
+    color: white;
+    border-radius: 2px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
 }
 
-/* Cursor para áreas arrastáveis */
-.section-handle {
-    cursor: grab; /* Cursor de "pegar" */
+.section-item:hover .section-drag-handle {
+    opacity: 0.8;
 }
 
-/* Cursor quando arrastando ativamente */
-.section-handle:active {
-    cursor: grabbing; /* Cursor de "arrastando" */
+.section-drag-handle:hover {
+    opacity: 1 !important;
+}
+
+/* Estilos para os estados de arrasto */
+.section-ghost {
+    opacity: 0.5;
+    border: 1px dashed #6b7280;
+}
+
+.section-chosen {
+    z-index: 10;
+}
+
+.section-drag {
+    z-index: 20;
 }
 </style>

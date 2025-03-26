@@ -270,6 +270,7 @@ const updateSegment = (segment: Segment) => {
  * Extrai métodos e variáveis do composable para uso no componente
  */
 const {
+    onDrop,
     onMouseDown, // Inicia arrasto com mouse
     onTouchStart, // Inicia arrasto com toque
     onDragOver, // Manipula eventos durante arrasto sobre a prateleira
@@ -288,23 +289,7 @@ const {
     isDropTarget,
     dragLeaveTimeout,
 });
- 
-
-// Modificar a função onDrop para incluir a validação
-const { onDrop  } = useShelfDrag({
-    props,
-    shelfPosition,
-    isDragging,
-    startY,
-    originalPosition,
-    scaleFactor,
-    emit,
-    minUpatePosition,
-    alignShelf,
-    openProductSettings,
-    isDropTarget,
-    dragLeaveTimeout,
-});
+  
 
 // Modificar o evento de clique para emitir o evento selectShelf
 const onShelfClick = (event: MouseEvent) => {

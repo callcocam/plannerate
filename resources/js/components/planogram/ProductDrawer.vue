@@ -1,7 +1,7 @@
 <template>
     <div>
         <!-- Slide-over panel for product selection -->
-        <div class="fixed inset-0 overflow-hidden pointer-events-none z-50" v-if="isOpen">
+        <div class="fixed inset-0 overflow-hidden pointer-events-none z-[100]" v-if="isOpen">
             <div class="absolute inset-0 overflow-hidden">
                 <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
                     <!-- Slide-over panel - pointer-events-auto apenas no painel -->
