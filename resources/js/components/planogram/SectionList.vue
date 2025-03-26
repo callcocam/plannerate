@@ -6,13 +6,14 @@
 // @ts-nocheck
 import { Button } from '@/components/ui/button';
 import { router } from '@inertiajs/vue3';
+import { Move } from 'lucide-vue-next';
 import Sortable from 'sortablejs';
-import { computed, onMounted, ref, toRefs, watch, provide, nextTick } from 'vue';
+import { computed, nextTick, onMounted, provide, ref, toRefs, watch } from 'vue';
+import { route } from 'ziggy-js';
 import SectionContext from './context/SectionContext.vue';
 import Gramalheira from './Gramalheira.vue';
 import { Gondola, Layer, Section, Segment, Shelf as ShelfType } from './planogram';
 import Shelf from './Shelf.vue';
-import { Move } from 'lucide-vue-next';
 
 /**
  * Interface que define as propriedades do componente
@@ -65,7 +66,7 @@ onMounted(() => {
     if (props.sections) {
         localSections.value = JSON.parse(JSON.stringify(props.sections));
     }
-    
+
     // Inicializa o Sortable em um próximo ciclo para garantir que o DOM está pronto
     nextTick(() => {
         initializeSortable();
@@ -122,12 +123,12 @@ let sortableInstance: Sortable | null = null;
  */
 function initializeSortable() {
     if (!sectionsContainer.value) return;
-    
+
     // Limpar instância anterior se existir
     if (sortableInstance) {
         sortableInstance.destroy();
     }
-    
+
     // Criar nova instância do Sortable
     sortableInstance = Sortable.create(sectionsContainer.value, {
         animation: 150,
@@ -138,21 +139,35 @@ function initializeSortable() {
         draggable: '.section-item', // Seletor para itens arrastáveis
         onEnd: (evt) => {
             if (evt.oldIndex === undefined || evt.newIndex === undefined) return;
-            
+
             // Cria uma cópia da lista de seções
             const sectionsList = [...localSections.value];
-            
+
             // Remove o item da posição antiga e o insere na nova posição
             const movedItem = sectionsList.splice(evt.oldIndex, 1)[0];
             sectionsList.splice(evt.newIndex, 0, movedItem);
-            
+
             // Atualiza a propriedade position de cada seção
             sectionsList.forEach((section, index) => {
-                section.position = index;
+                section.ordering = index;
             });
-            
+
             // Atualiza a referência local
             localSections.value = sectionsList;
+            localSections.value.forEach((section, index) => {
+                router.put(route('sections.update', section.id), section, {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        // console.log('Seção atualizada com sucesso:', section);
+                    },
+                    onError: (errors) => {
+                        console.error('Erro ao atualizar seção:', errors);
+                    },
+                });
+            });
+            // Emite o evento de atualização
+
+            console.log('Seções atualizadas:', sectionsList);
         },
     });
 }
@@ -367,7 +382,7 @@ const updateSegment = (updatedShelf: ShelfType): void => {
 const updateShelf = (shelf: ShelfWithSection): void => {
     const data: any = {
         ...shelf,
-    }; 
+    };
     // Envia a requisição PUT para atualizar a prateleira
     delete data.settings; // Remove as configurações para evitar problemas de serialização
 
@@ -474,7 +489,7 @@ const transferShelf = (transferData: { shelf: ShelfType; fromSectionId: string; 
 const selectShelf = (shelf: ShelfType): void => {
     // Define a prateleira ativa
     activeShelf.value = shelf;
-    
+
     // Opcionalmente, emitir evento para componentes de nível superior
     emit('select-shelf', shelf);
 };
@@ -495,11 +510,7 @@ const handleSectionContainerClick = (event) => {
 
 <template>
     <!-- Container principal para as seções, com referência para Sortable.js -->
-    <div 
-        class="relative flex min-h-screen items-center" 
-        ref="sectionsContainer"
-        @click="handleSectionContainerClick"
-    >
+    <div class="relative flex min-h-screen items-center" ref="sectionsContainer" @click="handleSectionContainerClick">
         <!-- Mensagem quando não há seções -->
         <div v-if="localSections.length === 0" class="flex w-full flex-col items-center justify-center">
             <p class="mb-4 text-center text-gray-500 dark:text-gray-400">Não há seções para exibir. Adicione uma nova seção para começar.</p>
@@ -507,23 +518,15 @@ const handleSectionContainerClick = (event) => {
         </div>
 
         <!-- Loop pelas seções para renderizá-las -->
-        <div 
-            v-for="(section, index) in localSections"
-            :key="section.id"
-            class="section-item relative"
-        >
-            <SectionContext
-                :section="section"
-                :gondola="gondola"
-                @transfer-shelf="transferShelf"
-            >
+        <div v-for="(section, index) in localSections" :key="section.id" class="section-item relative">
+            <SectionContext :section="section" :gondola="gondola" @transfer-shelf="transferShelf">
                 <!-- Item de seção arrastável -->
                 <div :style="getSectionStyle(section, index)">
                     <!-- Alça de arrasto para poder arrastar a seção -->
                     <div class="section-drag-handle">
                         <Move class="h-4 w-4 cursor-grab" />
                     </div>
-                    
+
                     <!-- Gramalheira esquerda (suporte vertical) -->
                     <Gramalheira
                         orientation="vertical"

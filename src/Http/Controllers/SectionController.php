@@ -228,13 +228,7 @@ class SectionController extends Controller
         try {
             $data = $request->validated();
 
-            $section->update([
-                'name' => data_get($data, 'name', $section->name),
-                'width' => data_get($data, 'width', $section->width),
-                'height' => data_get($data, 'height', $section->height),
-                'depth' => data_get($data, 'depth', $section->depth),
-                'status' => data_get($data, 'status', $section->status),
-            ]);
+            $section->update($data);
 
             return redirect()->back()->with('success', 'Seção atualizada com sucesso!')->with('record', $section);
         } catch (\Exception $e) {
