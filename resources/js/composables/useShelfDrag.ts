@@ -143,7 +143,7 @@ export default function useShelfDrag({
     const onDrop = (event: DragEvent) => {
         event.preventDefault();
         isDropTarget.value = false;
-
+console.log('Drop event triggered');
         // Limpa o timeout se existir
         if (dragLeaveTimeout.value) {
             clearTimeout(dragLeaveTimeout.value);
@@ -163,6 +163,7 @@ export default function useShelfDrag({
                     quantity: 1,
                     spacing: 0,
                     position: 0,
+                    preserveState: false,
                     status: 'published',
                     // Create layer with product information
                     layer: {

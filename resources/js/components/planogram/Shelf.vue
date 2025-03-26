@@ -6,7 +6,7 @@
     <ShelfContext
         :shelf="shelf"
         :gondola="gondola"
-        :shelfDirection="shelfDirection" 
+        :shelfDirection="shelfDirection"
         @update:shelf="$emit('update:shelf', $event)"
         @delete="$emit('delete', $event)"
         @duplicate="$emit('duplicate', $event)"
@@ -14,7 +14,7 @@
         @align="alignShelf"
         @edit-product="openProductSettings = true"
         @transfer="transferShelf"
-    > 
+    >
         <!-- 
             Container principal da prateleira
             Aplica classes condicionais baseadas no estado da prateleira
@@ -23,24 +23,24 @@
         <div
             class="shelf-container w-full bg-gray-700"
             :class="[
-                { 'shelf-dragging': isDragging },        /* Estilo quando está sendo arrastada */
-                { 'drop-target': isDropTarget },         /* Estilo quando é alvo de um drop */
-                { 'has-product': !!shelf.segments.length }, /* Estilo quando contém produtos */
-                { 'active-drop-zone': isDropTarget },    /* Estilo adicional para zona de drop ativa */
+                { 'shelf-dragging': isDragging } /* Estilo quando está sendo arrastada */,
+                { 'drop-target': isDropTarget } /* Estilo quando é alvo de um drop */,
+                { 'has-product': !!shelf.segments.length } /* Estilo quando contém produtos */,
+                { 'active-drop-zone': isDropTarget } /* Estilo adicional para zona de drop ativa */,
                 { 'draggable-shelf': true },
                 { 'shelf-selected': isSelected }, // Nova classe para indicar seleção
             ]"
-            :style="shelfStyle(shelf)"                   
-            @click="onShelfClick"                  
-            @mousedown="onMouseDown"                      
-            @touchstart="onTouchStart"                   
-            @dragenter.prevent="onDragOver"               
-            @dragover.prevent="onDragOver"               
-            @dragleave="onDragLeave"                    
+            :style="shelfStyle(shelf)"
+            @click="onShelfClick"
+            @mousedown="onMouseDown"
+            @touchstart="onTouchStart"
+            @dragenter.prevent="onDragOver"
+            @dragover.prevent="onDragOver"
+            @dragleave="onDragLeave"
             @drop="onDrop"
-            draggable="true" 
+            draggable="true"
         >
-        <Move class="absolute -left-5 text-white cursor-pointer w-4 h-4 z-10 shelf-handle"/>
+            <Move class="shelf-handle absolute -left-5 z-10 h-4 w-4 cursor-pointer text-white" />
             <!-- 
                 Componente Segments: Renderiza os segmentos/produtos na prateleira
                 Passa as props necessárias e configura handlers para eventos emitidos
@@ -53,15 +53,15 @@
                 @update:segment="updateSegment"
                 @update:layer="updateLayer"
             />
-            
+
             <!-- Indicador de posição exibido durante o arrasto da prateleira -->
             <div v-if="isDragging" class="position-indicator">Base: {{ Math.round(getBasePosition()) }}cm</div>
-            
+
             <!-- 
                 Overlay para manipulação de drag & drop
                 Cobre toda a prateleira e facilita a interação
             -->
-            <div class="absolute inset-0 cursor-move bg-gray-800 opacity-50 transition-colors hover:bg-gray-700" >
+            <div class="absolute inset-0 cursor-move bg-gray-800 opacity-50 transition-colors hover:bg-gray-700">
                 <!-- Indicador visual quando a prateleira é um alvo de soltar válido -->
                 <div v-if="isDropTarget" class="bg-primary-500 pointer-events-none absolute inset-0 flex items-center justify-center bg-opacity-30">
                     <div class="text-sm font-medium text-white">Soltar aqui</div>
@@ -77,12 +77,12 @@
  * Representa uma prateleira individual dentro de uma gôndola
  * Gerencia posicionamento, arrastar/soltar e interação com produtos/segmentos
  */
-import { computed, onMounted, ref, watch, inject } from 'vue';
+import { Move } from 'lucide-vue-next';
+import { computed, onMounted, ref, watch } from 'vue';
 import useShelfDrag from './../../composables/useShelfDrag'; // Composable para lógica de drag & drop
 import ShelfContext from './context/ShelfContext.vue';
-import { Gondola, Layer, Product, Segment, Shelf } from './planogram';
+import { Gondola, Layer, Segment, Shelf } from './planogram';
 import Segments from './Segments.vue';
-import { Move } from 'lucide-vue-next';
 
 /**
  * Props do componente
@@ -94,13 +94,13 @@ import { Move } from 'lucide-vue-next';
  * @property {boolean} isLast - Indica se é a última prateleira da seção
  * @property {Array} localSections - Array com todas as seções disponíveis
  */
-const props = defineProps<{ 
-    gondola: Gondola; 
-    shelf: Shelf; 
-    shelfDirection: string; 
-    scaleFactor?: number; 
-    isFirst: boolean; 
-    isLast: boolean; 
+const props = defineProps<{
+    gondola: Gondola;
+    shelf: Shelf;
+    shelfDirection: string;
+    scaleFactor?: number;
+    isFirst: boolean;
+    isLast: boolean;
 }>();
 
 /**
@@ -108,22 +108,22 @@ const props = defineProps<{
  * Permite comunicação com o componente pai
  */
 const emit = defineEmits([
-    'update:shelf',   // Atualização da prateleira
-    'delete',         // Exclusão da prateleira
-    'duplicate',      // Duplicação da prateleira
-    'move',           // Movimentação da prateleira
-    'selectShelf',    // Seleção da prateleira
-    'update:layer',   // Atualização de uma camada
-    'update:segment',  // Atualização de um segmento
-    'transfer-shelf'  // Transferência da prateleira para outra seção
+    'update:shelf', // Atualização da prateleira
+    'delete', // Exclusão da prateleira
+    'duplicate', // Duplicação da prateleira
+    'move', // Movimentação da prateleira
+    'selectShelf', // Seleção da prateleira
+    'update:layer', // Atualização de uma camada
+    'update:segment', // Atualização de um segmento
+    'transfer-shelf', // Transferência da prateleira para outra seção
 ]);
 
 // Variáveis reativas para controle da posição da prateleira
-const shelfPosition = ref(props.shelf.position);  // Posição atual
+const shelfPosition = ref(props.shelf.position); // Posição atual
 const minUpatePosition = ref(props.shelf.position); // Posição mínima para atualização (evita atualizações desnecessárias)
 
 // Variáveis para controle de drag & drop
-const isDropTarget = ref(false);  // Indica se é alvo de um drop
+const isDropTarget = ref(false); // Indica se é alvo de um drop
 const dragLeaveTimeout = ref(null); // Timeout para controlar eventos de drag leave
 const openProductSettings = ref(false); // Controla abertura do painel de configurações do produto
 
@@ -157,9 +157,11 @@ const scaleFactor = computed(() => {
 const shelfDirection = ref(props.shelfDirection);
 
 // Variáveis para controle do arraste
-const isDragging = ref(false);     // Indica se está sendo arrastada
-const startY = ref(0);             // Posição Y inicial do arraste
-const originalPosition = ref(0);   // Posição original da prateleira antes do arraste
+const isDragging = ref(false); // Indica se está sendo arrastada
+const startY = ref(0); // Posição Y inicial do arraste
+const originalPosition = ref(0); // Posição original da prateleira antes do arraste
+// Import activeShelf from provide/inject system
+const activeShelf = ref(null) as any;
 
 /**
  * Obtém a posição da base da prateleira em centímetros
@@ -196,6 +198,7 @@ const shelfStyle = (shelf: any) => {
             position: 'absolute' as const, // Type assertion para o tipo literal 'absolute'
             top: `${scaledPosition}px`,
             left: '0px',
+            border: '1px solid #ccc',
             zIndex: isDragging.value ? 10 : 1, // Aumenta z-index durante arrasto
         };
     } else {
@@ -220,7 +223,7 @@ const shelfStyle = (shelf: any) => {
         };
     }
 };
- 
+
 /**
  * Alinha a prateleira com o furo mais próximo na gramalheira
  * Calcula a posição ideal e emite evento para atualizar no componente pai
@@ -241,9 +244,9 @@ const alignShelf = () => {
 
     // Evita atualizações desnecessárias se a mudança for menor que 1
     if (Math.abs(minUpatePosition.value - shelfPosition.value) < 1) return;
-    
+
     minUpatePosition.value = shelfPosition.value;
-    emit('update:shelf', { ...props.shelf, position: alignedPosition });
+    emit('update:shelf', { ...props.shelf, position: alignedPosition, preserveState: true });
 };
 
 /**
@@ -266,11 +269,11 @@ const updateSegment = (segment: Segment) => {
  * Usa o composable useShelfDrag para toda a lógica de arraste e soltar
  * Extrai métodos e variáveis do composable para uso no componente
  */
-const { 
-    onMouseDown,      // Inicia arrasto com mouse
-    onTouchStart,     // Inicia arrasto com toque
-    onDragOver,       // Manipula eventos durante arrasto sobre a prateleira
-    onDragLeave,      // Manipula saída do arrasto 
+const {
+    onMouseDown, // Inicia arrasto com mouse
+    onTouchStart, // Inicia arrasto com toque
+    onDragOver, // Manipula eventos durante arrasto sobre a prateleira
+    onDragLeave, // Manipula saída do arrasto
 } = useShelfDrag({
     props,
     shelfPosition,
@@ -285,49 +288,10 @@ const {
     isDropTarget,
     dragLeaveTimeout,
 });
-
-/**
- * Verifica se um produto cabe na prateleira atual
- * @param {Product} product - O produto a verificar
- * @param {number} quantity - Quantidade do produto
- * @returns {boolean} Verdadeiro se o produto cabe na prateleira
- */
-const validateProductFit = (product: Product, quantity = 1) => {
-    // Verificar altura
-    // if (product.height > props.shelf.height) {
-    //     alert(`O produto é muito alto para esta prateleira.
-    //           Altura do produto: ${product.height}cm,
-    //           altura da prateleira: ${props.shelf.height}cm.`);
-    //     return false;
-    // }
-    
-    // Calcular largura total dos produtos existentes
-    const existingWidth = props.shelf.segments.reduce(
-        (carry, segment) => {
-            return carry + (segment.layer.product.width * segment.layer.quantity);
-        }, 0);
-    
-    // Calcular largura necessária para o novo produto
-    const requiredWidth = product.width * quantity;
-    
-    // Calcular largura disponível (largura da seção - espessura da gôndola - largura dos produtos existentes)
-    const gondolaThickness = props.gondola.thickness;
-    const availableWidth = props.shelf.section.width - (2 * gondolaThickness) - existingWidth;
-    
-    if (requiredWidth > availableWidth) {
-        alert(`Não há espaço suficiente na prateleira.
-              Largura necessária: ${requiredWidth}cm,
-              espaço disponível: ${availableWidth}cm.`);
-        return false;
-    }
-    
-    return true;
-};
+ 
 
 // Modificar a função onDrop para incluir a validação
-const { 
-    onDrop: originalOnDrop,
-} = useShelfDrag({
+const { onDrop  } = useShelfDrag({
     props,
     shelfPosition,
     isDragging,
@@ -342,83 +306,77 @@ const {
     dragLeaveTimeout,
 });
 
-// Sobrescrevendo onDrop para incluir validação
-const onDrop = (event: DragEvent) => {
-    event.preventDefault();
-    isDropTarget.value = false;
+// // Sobrescrevendo onDrop para incluir validação
+// const onDrop = (event: DragEvent) => {
+//     event.preventDefault();
+//     isDropTarget.value = false;
 
-    // Limpa o timeout se existir
-    if (dragLeaveTimeout.value) {
-        clearTimeout(dragLeaveTimeout.value);
-        dragLeaveTimeout.value = null;
-    }
+//     // Limpa o timeout se existir
+//     if (dragLeaveTimeout.value) {
+//         clearTimeout(dragLeaveTimeout.value);
+//         dragLeaveTimeout.value = null;
+//     }
 
-    try {
-        const jsonData = event.dataTransfer?.getData('application/json');
-        if (jsonData) {
-            const product = JSON.parse(jsonData);
-            
-            // Validar se o produto cabe antes de adicionar
-            if (!validateProductFit(product)) {
-                return; // Não adiciona se não couber
-            }
+//     try {
+//         const jsonData = event.dataTransfer?.getData('application/json');
+//         if (jsonData) {
+//             const product = JSON.parse(jsonData);
 
-            // O resto do código continua como antes
-            // ...existing code from originalOnDrop...
-            
-            // Create a new segment with all necessary properties
-            const newSegment = {
-                id: `segment-${Date.now()}`,
-                width: props.shelf.section?.width || 130,
-                ordering: (props.shelf.segments?.length || 0) + 1,
-                quantity: 1,
-                spacing: 0,
-                position: 0,
-                status: 'published',
-                // Create layer with product information
-                layer: {
-                    id: `layer-${Date.now()}`,
-                    product_id: product.id,
-                    product_name: product.name,
-                    product_image: product.image,
-                    height: product.height,
-                    spacing: 0,
-                    quantity: 1,
-                    status: 'published',
-                }
-            };
+//             // Validar se o produto cabe antes de adicionar
+//             if (!validateProductFit(product)) {
+//                 return; // Não adiciona se não couber
+//             }
 
-            // Update the shelf with the new segment
-            const updatedShelf = {
-                ...props.shelf,
-                segment: newSegment,
-            };
+//             // O resto do código continua como antes
+//             // ...existing code from originalOnDrop...
 
-            // Emite o evento para atualizar a prateleira
-            emit('update:shelf', updatedShelf);
+//             // Create a new segment with all necessary properties
+//             const newSegment = {
+//                 id: `segment-${Date.now()}`,
+//                 width: props.shelf.section?.width || 130,
+//                 ordering: (props.shelf.segments?.length || 0) + 1,
+//                 quantity: 1,
+//                 spacing: 0,
+//                 position: 0,
+//                 status: 'published',
+//                 // Create layer with product information
+//                 layer: {
+//                     id: `layer-${Date.now()}`,
+//                     product_id: product.id,
+//                     product_name: product.name,
+//                     product_image: product.image,
+//                     height: product.height,
+//                     spacing: 0,
+//                     quantity: 1,
+//                     status: 'published',
+//                 },
+//             };
 
-            // Emite o evento selectShelf quando um produto é colocado
-            emit('selectShelf', props.shelf);
-        }
-    } catch (error) {
-        console.error('Erro ao processar o produto arrastado:', error);
-    }
-};
+//             // Update the shelf with the new segment
+//             const updatedShelf = {
+//                 ...props.shelf,
+//                 segment: newSegment,
+//             };
+
+//             // Emite o evento para atualizar a prateleira
+//             emit('update:shelf', updatedShelf);
+
+//             // Emite o evento selectShelf quando um produto é colocado
+//             emit('selectShelf', props.shelf);
+//         }
+//     } catch (error) {
+//         console.error('Erro ao processar o produto arrastado:', error);
+//     }
+// };
 
 // Modificar o evento de clique para emitir o evento selectShelf
 const onShelfClick = (event: MouseEvent) => {
-    // Evita propagação para não interferir com outros eventos
-    if (event.target === event.currentTarget) {
-        emit('selectShelf', props.shelf);
-    }
+    // Evita propagação para não interferir com outros eventos 
+    activeShelf.value = props.shelf; // Atualiza a prateleira ativa 
 };
 
-
-// Import activeShelf from provide/inject system
-const activeShelf = inject('activeShelf', ref(null) as any);
-
 // Track if this shelf is currently selected
-const isSelected = computed(() => {
+const isSelected = computed(() => { 
     return activeShelf && activeShelf.value && activeShelf.value?.id === props.shelf.id;
 });
 /**
@@ -528,6 +486,7 @@ const transferShelf = (transferData) => {
 
 /* Estilo para a prateleira selecionada */
 .shelf-selected {
+    opacity: 0.8;
     outline: 2px solid #3b82f6;
     outline-offset: 2px;
     z-index: 5;

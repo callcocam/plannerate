@@ -7,7 +7,7 @@
 import { Button } from '@/components/ui/button';
 import { router } from '@inertiajs/vue3';
 import Sortable from 'sortablejs';
-import { computed, onMounted, provide, ref, toRefs, watch } from 'vue';
+import { computed, onMounted, ref, toRefs, watch } from 'vue';
 import SectionContext from './context/SectionContext.vue';
 import Gramalheira from './Gramalheira.vue';
 import { Gondola, Layer, Section, Segment, Shelf as ShelfType } from './planogram';
@@ -49,6 +49,9 @@ const { sections, scaleFactor, baseHeight, shelfDirection } = toRefs(props);
 
 // Referência local para as seções, para evitar modificar as props diretamente
 const localSections = ref<Section[]>([]);
+
+// Import activeShelf from provide/inject system
+const activeShelf = ref(null) as any;
 
 /**
  * Inicializa as seções locais no momento da montagem do componente
@@ -347,13 +350,12 @@ const updateSegment = (updatedShelf: ShelfType): void => {
 const updateShelf = (shelf: ShelfWithSection): void => {
     const data: any = {
         ...shelf,
-    };
-
+    }; 
     // Envia a requisição PUT para atualizar a prateleira
     delete data.settings; // Remove as configurações para evitar problemas de serialização
 
     router.put(`/shelves/${shelf.id}`, data, {
-        preserveState: false, // Não preserva o estado atual
+        preserveState: shelf?.preserveState, // Não preserva o estado atual
         preserveScroll: true, // Mantém a posição de rolagem
         onSuccess: ({ props }) => {}, // Callback de sucesso
         onError: (errors) => {
@@ -400,7 +402,7 @@ const duplicateShelf = (newShelf: ShelfWithSection): void => {
         }
         return section;
     });
-}; 
+};
 
 /**
  * Transfere uma prateleira de uma seção para outra
@@ -414,16 +416,16 @@ const transferShelf = (transferData: { shelf: ShelfType; fromSectionId: string; 
     const { shelf, fromSectionId, toSectionId, position } = transferData;
 
     // Se for a mesma seção, não faz nada
-    if (fromSectionId === toSectionId) return; 
+    if (fromSectionId === toSectionId) return;
     // Envia atualização para o servidor
     router.put(
         route('shelves.update-section', shelf.id),
         {
             section_id: toSectionId,
         },
-        { 
+        {
             preserveScroll: true,
-            onSuccess: () => { 
+            onSuccess: () => {
                 // Atualiza a seção localmente
                 localSections.value = localSections.value.map((section) => {
                     if (section.id === fromSectionId) {
@@ -439,7 +441,7 @@ const transferShelf = (transferData: { shelf: ShelfType; fromSectionId: string; 
                         };
                     }
                     return section;
-                }); 
+                });
             },
             onError: (errors) => {
                 console.error('Erro ao transferir prateleira:', errors);
@@ -483,6 +485,7 @@ const selectShelf = (shelf: ShelfType): void => {
                     :style="contentGramalheiraStyle"
                     :gondola="gondola"
                     :scaleFactor="scaleFactor"
+                    v-if="!index"
                 />
 
                 <!-- Área das prateleiras -->

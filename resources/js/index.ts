@@ -12,8 +12,7 @@ interface ComponentModule {
 const install = (app: App, options: PluginOptions = {}) => {
     const componentRegistry: string[] = [];
     app.component('Planerate', Planerate);
-    app.component('v-planerate', Planerate);
-    console.log('Planerate', Planerate);
+    app.component('v-planerate', Planerate); 
     //   Object.entries(import.meta.glob<ComponentModule>('./fields/**/*.vue', { eager: true }))
     //     .forEach(([path, definition]) => {
     //       const originalName = path.split('/').pop()?.replace(/\.\w+$/, '') || '';

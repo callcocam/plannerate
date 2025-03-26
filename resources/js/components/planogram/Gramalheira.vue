@@ -1,14 +1,22 @@
-<script setup lang="ts">
+<script setup lang="ts"> 
+// @ts-ignore
 import { cn } from '@/lib/utils';
 import { type SeparatorProps } from 'radix-vue';
-import { computed, type HTMLAttributes } from 'vue';
+import { computed, ref, type HTMLAttributes } from 'vue';
 import { Gondola } from './planogram';
 
 const props = defineProps<SeparatorProps & {
     class?: HTMLAttributes['class'];
-    gondola: Gondola;
+    gondola: Gondola & {
+        height: number;
+        base_height: number;
+        shelf_height: number;
+        hole_diameter: number;
+        hole_spacing: number;
+    };
     scaleFactor?: number;
 }>();
+
 
 const delegatedProps = computed(() => {
     const { class: _, ...delegated } = props;
@@ -26,11 +34,11 @@ const gondolaContainerHeight = computed(() => {
 // Calcular as posições dos furos (mesmas posições usadas para as prateleiras)
 const gramalheirHoles = computed(() => {
     if (!props.gondola || !props.gondola.height || !props.gondola.shelf_height) {
-        return [];
+        return [] as number[];
     }
 
-    const holes = [];
-    const holeSpacing = props.gondola.shelf_height; // Usar o mesmo valor da altura da prateleira
+    const holes: number[] = [];
+    const holeSpacing: any = props.gondola.shelf_height; // Usar o mesmo valor da altura da prateleira
     const totalHoles = Math.floor(gondolaContainerHeight.value / holeSpacing);
 
     for (let i = 0; i < totalHoles; i++) {
@@ -47,8 +55,7 @@ const gramalheirHoles = computed(() => {
 
 // Estilo para cada furo
 const gramalheirHoleStyle = (hole: number) => {
-    const position = hole * effectiveScaleFactor.value;
-
+    const position = hole * effectiveScaleFactor.value; 
     return {
         width: `${props.gondola.hole_diameter * effectiveScaleFactor.value}px`,
         height: `${(props.gondola.shelf_height + props.gondola.hole_spacing) * effectiveScaleFactor.value}px`, // Altura reduzida para ficar mais estético
