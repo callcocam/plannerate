@@ -1,3 +1,4 @@
+import './../css/app.css';
 import type { App } from 'vue'
 import Planerate from './App.vue';
 

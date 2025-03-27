@@ -13,7 +13,7 @@
         @move="$emit('move', $event)"
         @align="alignShelf"
         @edit-product="openProductSettings = true"
-        @transfer="transferShelf"
+        @transfer="onTransferShelf"
     >
         <!-- 
             Container principal da prateleira
@@ -28,9 +28,11 @@
                 { 'has-product': !!shelf.segments.length } /* Estilo quando contém produtos */,
                 { 'active-drop-zone': isDropTarget } /* Estilo adicional para zona de drop ativa */,
                 { 'draggable-shelf': true },
-                { 'shelf-selected': isSelected }, // Nova classe para indicar seleção
+                { 'shelf-selected': isSelected }, // Classe para indicar seleção
+                { 'layer-drop-target': isDragOver } /* Estilo quando é alvo de drop de layer */,
             ]"
             :style="shelfStyle(shelf)"
+            :data-shelf-id="shelf.id"
             @click.stop="onShelfClick"
             @mousedown="onMouseDown"
             @touchstart="onTouchStart"
@@ -52,6 +54,7 @@
                 :scale-factor="scaleFactor"
                 @update:segment="updateSegment"
                 @update:layer="updateLayer"
+                @transfer-layer="handleTransferLayer"
             />
 
             <!-- Indicador de posição exibido durante o arrasto da prateleira -->
@@ -60,10 +63,17 @@
             <!-- 
                 Overlay para manipulação de drag & drop
                 Cobre toda a prateleira e facilita a interação
+                Só é visível durante o arrasto ou quando é um alvo de drop
             -->
-            <div class="absolute inset-0 cursor-move bg-gray-800 opacity-50 transition-colors hover:bg-gray-700">
+            <div
+                class="shelf-overlay absolute inset-0 cursor-move bg-gray-800 opacity-0 transition-colors hover:bg-gray-700"
+                :class="{ 'opacity-50': isDropTarget || isDragOver }"
+            >
                 <!-- Indicador visual quando a prateleira é um alvo de soltar válido -->
-                <div v-if="isDropTarget" class="bg-primary-500 pointer-events-none absolute inset-0 flex items-center justify-center bg-opacity-30">
+                <div
+                    v-if="isDropTarget || isDragOver"
+                    class="bg-primary-500 pointer-events-none absolute inset-0 flex items-center justify-center bg-opacity-30"
+                >
                     <div class="text-sm font-medium text-white">Soltar aqui</div>
                 </div>
             </div>
@@ -78,21 +88,21 @@
  * Gerencia posicionamento, arrastar/soltar e interação com produtos/segmentos
  */
 import { Move } from 'lucide-vue-next';
-import { computed, onMounted, ref, watch, inject, onUnmounted, Ref } from 'vue';
+import { computed, inject, onMounted, onUnmounted, ref, Ref, watch } from 'vue';
 import useShelfDrag from './../../composables/useShelfDrag'; // Composable para lógica de drag & drop
 import ShelfContext from './context/ShelfContext.vue';
 import { Gondola, Layer, Segment, Shelf } from './planogram';
 import Segments from './Segments.vue';
 
+interface TransferLayerData {
+    layer: Layer;
+    segment: Segment;
+    fromShelfId: string;
+    toShelfId: string;
+}
+
 /**
  * Props do componente
- * @property {Gondola} gondola - Objeto com dados da gôndola
- * @property {Shelf} shelf - Objeto com dados da prateleira
- * @property {string} shelfDirection - Direção das prateleiras ('top' ou 'bottom')
- * @property {number} scaleFactor - Fator de escala para dimensionamento visual
- * @property {boolean} isFirst - Indica se é a primeira prateleira da seção
- * @property {boolean} isLast - Indica se é a última prateleira da seção
- * @property {Array} localSections - Array com todas as seções disponíveis
  */
 const props = defineProps<{
     gondola: Gondola;
@@ -105,27 +115,35 @@ const props = defineProps<{
 
 /**
  * Eventos emitidos pelo componente
- * Permite comunicação com o componente pai
  */
-const emit = defineEmits([
-    'update:shelf', // Atualização da prateleira
-    'delete', // Exclusão da prateleira
-    'duplicate', // Duplicação da prateleira
-    'move', // Movimentação da prateleira
-    'selectShelf', // Seleção da prateleira
-    'update:layer', // Atualização de uma camada
-    'update:segment', // Atualização de um segmento
-    'transfer-shelf', // Transferência da prateleira para outra seção
-]);
+const emit = defineEmits<{
+    'update:shelf': [shelf: Shelf];
+    delete: [shelf: Shelf];
+    duplicate: [shelf: Shelf];
+    move: [shelf: Shelf];
+    selectShelf: [shelf: Shelf];
+    'update:layer': [layer: Layer];
+    'update:segment': [segment: Segment | Shelf];
+    'transfer-shelf': [
+        transferData: {
+            shelf: Shelf;
+            fromSectionId: string;
+            toSectionId: string;
+            position?: number;
+        },
+    ];
+    'transfer-layer': [transferData: TransferLayerData];
+}>();
 
 // Variáveis reativas para controle da posição da prateleira
-const shelfPosition = ref(props.shelf.position); // Posição atual
-const minUpatePosition = ref(props.shelf.position); // Posição mínima para atualização (evita atualizações desnecessárias)
+const shelfPosition = ref<number>(props.shelf.position); // Posição atual
+const minUpatePosition = ref<number>(props.shelf.position); // Posição mínima para atualização (evita atualizações desnecessárias)
 
 // Variáveis para controle de drag & drop
-const isDropTarget = ref(false); // Indica se é alvo de um drop
-const dragLeaveTimeout = ref(null); // Timeout para controlar eventos de drag leave
-const openProductSettings = ref(false); // Controla abertura do painel de configurações do produto
+const isDropTarget = ref<boolean>(false); // Indica se é alvo de um drop
+const dragLeaveTimeout = ref<number | null>(null); // Timeout para controlar eventos de drag leave
+const openProductSettings = ref<boolean>(false); // Controla abertura do painel de configurações do produto
+const isDragOver = ref<boolean>(false); // Indica se uma layer está sendo arrastada sobre esta prateleira
 
 /**
  * Observa mudanças na posição da prateleira nas props
@@ -149,17 +167,17 @@ onMounted(() => {
  * Calcula o fator de escala a ser utilizado
  * Usa o valor de props se disponível, caso contrário usa o da gôndola
  */
-const scaleFactor = computed(() => {
+const scaleFactor = computed<number>(() => {
     return props.scaleFactor !== undefined ? props.scaleFactor : props.gondola.scale_factor;
 });
 
 // Referência local da direção das prateleiras
-const shelfDirection = ref(props.shelfDirection);
+const shelfDirection = ref<string>(props.shelfDirection);
 
 // Variáveis para controle do arraste
-const isDragging = ref(false); // Indica se está sendo arrastada
-const startY = ref(0); // Posição Y inicial do arraste
-const originalPosition = ref(0); // Posição original da prateleira antes do arraste
+const isDragging = ref<boolean>(false); // Indica se está sendo arrastada
+const startY = ref<number>(0); // Posição Y inicial do arraste
+const originalPosition = ref<number>(0); // Posição original da prateleira antes do arraste
 // Import activeShelf from provide/inject system
 const activeShelf = inject<Ref<Shelf | null>>('activeShelf', ref(null));
 
@@ -167,7 +185,7 @@ const activeShelf = inject<Ref<Shelf | null>>('activeShelf', ref(null));
  * Obtém a posição da base da prateleira em centímetros
  * @returns {number} Posição em relação à base da gôndola
  */
-const getBasePosition = () => {
+const getBasePosition = (): number => {
     return shelfPosition.value;
 };
 
@@ -177,7 +195,7 @@ const getBasePosition = () => {
  * @param {Shelf} shelf - Objeto da prateleira
  * @returns {Object} Objeto de estilo CSS
  */
-const shelfStyle = (shelf: any) => {
+const shelfStyle = (shelf: Shelf): Record<string, string> => {
     const { section } = shelf;
     let finalPosition;
 
@@ -195,11 +213,11 @@ const shelfStyle = (shelf: any) => {
         return {
             height: `${height}px`,
             width: `${width}px`,
-            position: 'absolute' as const, // Type assertion para o tipo literal 'absolute'
+            position: 'absolute',
             top: `${scaledPosition}px`,
             left: '0px',
             border: '1px solid #ccc',
-            zIndex: 1000, // Aumenta z-index durante arrasto
+            zIndex: '1000', // Aumenta z-index durante arrasto
         };
     } else {
         // Para direção bottom, calcula a posição a partir de baixo
@@ -216,10 +234,10 @@ const shelfStyle = (shelf: any) => {
         return {
             height: `${height}px`,
             width: `${width}px`,
-            position: 'absolute' as const, // Type assertion para o tipo literal 'absolute'
+            position: 'absolute',
             top: `${scaledPosition}px`,
             left: '0px',
-            zIndex: 100, // Aumenta z-index durante arrasto
+            zIndex: '100', // Aumenta z-index durante arrasto
         };
     }
 };
@@ -246,22 +264,22 @@ const alignShelf = () => {
     if (Math.abs(minUpatePosition.value - shelfPosition.value) < 1) return;
 
     minUpatePosition.value = shelfPosition.value;
-    emit('update:shelf', { ...props.shelf, position: alignedPosition, preserveState: true });
+    emit('update:shelf', { ...props.shelf, position: alignedPosition, preserveState: true } as Shelf);
 };
 
 /**
  * Repassa eventos de atualização de camada para o componente pai
- * @param {Layer} layer - Camada atualizada
+ * @param {Layer | Shelf} layer - Camada ou prateleira atualizada
  */
-const updateLayer = (layer: Layer) => {
-    emit('update:layer', layer);
+const updateLayer = (layer: Layer | Shelf) => {
+    emit('update:layer', layer as Layer);
 };
 
 /**
  * Repassa eventos de atualização de segmento para o componente pai
- * @param {Segment} segment - Segmento atualizado
+ * @param {Segment | Shelf} segment - Segmento ou prateleira atualizada
  */
-const updateSegment = (segment: Segment) => {
+const updateSegment = (segment: Segment | Shelf) => {
     emit('update:segment', segment);
 };
 
@@ -270,11 +288,11 @@ const updateSegment = (segment: Segment) => {
  * Extrai métodos e variáveis do composable para uso no componente
  */
 const {
-    onDrop,
+    onDrop: onShelfDrop,
     onMouseDown, // Inicia arrasto com mouse
     onTouchStart, // Inicia arrasto com toque
-    onDragOver, // Manipula eventos durante arrasto sobre a prateleira
-    onDragLeave, // Manipula saída do arrasto
+    onDragOver: onShelfDragOver, // Manipula eventos durante arrasto sobre a prateleira
+    onDragLeave: onShelfDragLeave, // Manipula saída do arrasto
 } = useShelfDrag({
     props,
     shelfPosition,
@@ -289,13 +307,112 @@ const {
     isDropTarget,
     dragLeaveTimeout,
 });
-  
+
+// Manipuladores para drag & drop com suporte a layers
+const onDragOver = (event: DragEvent) => {
+    event.preventDefault();
+    onShelfDragOver(event); // Usar a implementação base para prateleiras
+
+    // Verificar se o que está sendo arrastado é uma layer
+    try {
+        const dataType = event.dataTransfer?.types.find((type) => type === 'application/json');
+        if (dataType) {
+            const data = event.dataTransfer?.getData('application/json');
+            if (data) {
+                const draggedItem = JSON.parse(data);
+                if (draggedItem.type === 'layer') {
+                    isDragOver.value = true;
+                }
+            }
+        }
+    } catch (err) {
+        // Se não conseguir ler os dados, apenas continue
+    }
+
+    // Limpar qualquer timeout existente
+    if (dragLeaveTimeout.value) {
+        window.clearTimeout(dragLeaveTimeout.value);
+        dragLeaveTimeout.value = null;
+    }
+};
+
+const onDragLeave = (event: DragEvent) => {
+    onShelfDragLeave(event); // Usar a implementação base para prateleiras
+
+    // Configurar um timeout para evitar que o evento dispare ao passar por elementos filhos
+    dragLeaveTimeout.value = window.setTimeout(() => {
+        isDragOver.value = false;
+        isDropTarget.value = false;
+    }, 50);
+};
+
+const onDrop = (event: DragEvent) => {
+    event.preventDefault();
+    isDropTarget.value = false;
+    isDragOver.value = false;
+
+    // Obter os dados do item arrastado
+    const dataType = event.dataTransfer?.types.find((type) => type === 'application/json');
+    if (!dataType) {
+        onShelfDrop(event); // Usar a implementação base se não for um formato reconhecido
+        return;
+    }
+
+    const data = event.dataTransfer?.getData('application/json');
+    if (!data) {
+        onShelfDrop(event); // Usar a implementação base se não tiver dados
+        return;
+    }
+
+    try {
+        // Processa os dados do item arrastado
+        const draggedItem = JSON.parse(data);
+
+        // Processa o drop conforme o tipo do item arrastado
+        if (draggedItem.type === 'product') {
+            // Implementação existente para produtos
+            onShelfDrop(event);
+        } else if (draggedItem.type === 'layer') {
+            // Novo processamento para layers
+            handleLayerDrop(draggedItem);
+        } else {
+            // Para outros tipos, usar a implementação base
+            onShelfDrop(event);
+        }
+    } catch (err) {
+        console.error('Error processing drop:', err);
+        // Em caso de erro, usar a implementação base
+        onShelfDrop(event);
+    }
+};
+
+// Função para processar o drop de uma layer
+const handleLayerDrop = (layerData: any) => {
+    console.log('Layer drop recebido:', layerData);
+
+    // Se a layer já está nesta prateleira, ignorar
+    if (layerData.shelfId === props.shelf.id) return;
+
+    // Emitir evento para transferir a layer para esta prateleira
+    emit('transfer-layer', {
+        fromShelfId: layerData.shelfId,
+        toShelfId: props.shelf.id,
+        layerId: layerData.layerId,
+        segmentId: layerData.segmentId,
+    } as any);
+};
+
+// Manipulador para o evento transfer-layer emitido pelos componentes filhos
+const handleTransferLayer = (transferData: TransferLayerData) => {
+    console.log('Propagando transferência de layer:', transferData);
+    emit('transfer-layer', transferData);
+};
 
 // Modificar o evento de clique para emitir o evento selectShelf
 const onShelfClick = (event: MouseEvent) => {
     // Previne a propagação para evitar outros handlers
     event.stopPropagation();
-    
+
     // Se esta prateleira já está selecionada, deseleciona
     if (isSelected.value) {
         // Desseleciona a prateleira (como toggle)
@@ -303,7 +420,7 @@ const onShelfClick = (event: MouseEvent) => {
     } else {
         // Seleciona esta prateleira e desseleciona qualquer outra
         activeShelf.value = props.shelf;
-        
+
         // Emite o evento para o componente pai
         emit('selectShelf', props.shelf);
     }
@@ -329,14 +446,15 @@ onUnmounted(() => {
 });
 
 // Track if this shelf is currently selected
-const isSelected = computed(() => { 
-    return activeShelf && activeShelf.value && activeShelf.value?.id === props.shelf.id;
+const isSelected = computed<boolean>(() => {
+    return Boolean(activeShelf && activeShelf.value && activeShelf.value?.id === props.shelf.id);
 });
+
 /**
  * Transfere a prateleira para outra seção
  * @param {Object} transferData - Dados para transferência
  */
-const transferShelf = (transferData) => {
+const onTransferShelf = (transferData: any) => {
     // Emite evento para o componente pai lidar com a transferência real
     emit('transfer-shelf', transferData);
 };
@@ -443,5 +561,16 @@ const transferShelf = (transferData) => {
     outline: 2px solid #3b82f6;
     outline-offset: 2px;
     z-index: 5;
+}
+
+/* Estilo para quando uma layer está sendo arrastada sobre a prateleira */
+.shelf-overlay {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.shelf-container.layer-drop-target {
+    outline: 2px dashed #3b82f6;
+    background-color: rgba(59, 130, 246, 0.1);
 }
 </style>

@@ -9,21 +9,46 @@
         :gondola="gondola"
         @update:layer="updateLayer"
         @update:segment="updateSegment"
+        @transfer-layer="handleTransferLayer"
     />
 </template>
 <script setup lang="ts">
 import SegmentVue from './Segment.vue';
 import { Gondola, Layer, Segment, Shelf } from './planogram';
 
-const props = defineProps<{ gondola: Gondola; shelf: Shelf; segments: Segment[]; scaleFactor: number }>();
-const emit = defineEmits(['update:shelf', 'update:layer', 'update:segment']);
+const props = defineProps<{
+    gondola: Gondola;
+    shelf: Shelf;
+    segments: Segment[];
+    scaleFactor: number;
+}>();
+
+interface TransferLayerData {
+    layer: Layer;
+    segment: Segment;
+    fromShelfId: string;
+    toShelfId: string;
+}
+
+const emit = defineEmits<{
+    'update:shelf': [shelf: Shelf | Layer];
+    'update:layer': [layer: Layer | Shelf];
+    'update:segment': [segment: Segment | Shelf];
+    'transfer-layer': [transferData: TransferLayerData];
+}>();
 
 // Função para passar atualizações para o componente pai
-const updateLayer = (layer: Layer) => {
+const updateLayer = (layer: Shelf | Layer) => {
     emit('update:layer', layer);
 };
 
-const updateSegment = (segment: Segment) => {
+const updateSegment = (segment: Segment | Shelf) => {
     emit('update:segment', segment);
 };
-</script> 
+
+// Função para repassar eventos de transferência de layer
+const handleTransferLayer = (transferData: TransferLayerData) => {
+    console.log('Segments: repassando transferência de layer', transferData);
+    emit('transfer-layer', transferData);
+};
+</script>

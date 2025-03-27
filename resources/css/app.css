@@ -1,0 +1,70 @@
+/* Estes estilos devem ser adicionados ao seu arquivo de estilos globais ou em um componente de nível superior */
+
+/* Estilo para o elemento da prateleira quando é um alvo válido para soltar uma layer */
+.shelf-container.layer-drop-target {
+    outline: 2px dashed #3b82f6 !important;
+    background-color: rgba(59, 130, 246, 0.1) !important;
+    position: relative;
+    z-index: 10;
+}
+
+/* Mensagem "Soltar aqui" quando uma prateleira é um alvo válido */
+.shelf-container.layer-drop-target::before {
+    content: "Soltar aqui";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #3b82f6;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    z-index: 11;
+    pointer-events: none;
+}
+
+/* Estilo para o elemento fantasma que aparece durante o arrasto */
+.layer-drag-ghost {
+    position: fixed;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0.9;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    transform: translate(-50%, -50%);
+}
+
+/* Estilo para o body durante o arrasto para prevenir seleção de texto */
+body.dragging-layer {
+    user-select: none;
+    cursor: grabbing !important;
+}
+
+/* Estilo para layer sendo arrastada */
+.layer-dragging {
+    opacity: 0.6 !important;
+    transform: scale(1.05) !important;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2) !important;
+    z-index: 1000 !important;
+    cursor: grabbing !important;
+}
+
+/* Animação quando uma layer é transferida com sucesso */
+@keyframes highlight-success {
+    0% {
+        background-color: rgba(59, 130, 246, 0.2);
+    }
+
+    50% {
+        background-color: rgba(16, 185, 129, 0.3);
+    }
+
+    100% {
+        background-color: transparent;
+    }
+}
+
+.layer-transfer-success {
+    animation: highlight-success 1s ease-out forwards;
+}

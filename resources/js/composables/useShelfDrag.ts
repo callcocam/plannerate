@@ -226,6 +226,7 @@ export default function useShelfDrag({
         isDropTarget.value = false;
 
         const data = event.dataTransfer.getData('application/json');
+        console.log('Data from drop:', data);
         if (!data) return;
 
         try {

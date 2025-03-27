@@ -8,6 +8,7 @@ export interface Image {
 
 export interface Product {
     id: string;
+    image_url: string;
     name: string;
     height: number;
     width: number;
