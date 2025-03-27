@@ -50,6 +50,7 @@ export default function useLayerDrag({ layer, segment, shelf, emit }: UseLayerDr
     const transferData = {
       type: 'layer',
       layerId: layer.id,
+      layer: layer,
       segmentId: segment.id,
       shelfId: shelf.id,
       product: layer.product,

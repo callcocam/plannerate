@@ -20,6 +20,7 @@ class SegmentResource extends JsonResource
             'tenant_id' => $this->tenant_id,
             'user_id' => $this->user_id,
             'shelf_id' => $this->shelf_id,
+            'segment_id' => $this->segment_id,
             'width' => $this->width,
             'ordering' => $this->ordering,
             'position' => $this->position,

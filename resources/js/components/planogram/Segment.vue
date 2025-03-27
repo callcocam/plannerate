@@ -16,6 +16,7 @@
 <script setup lang="ts">
 import LayerVue from './Layer.vue';
 import { Gondola, Layer, Segment, Shelf } from './planogram';
+import { router } from '@inertiajs/vue3';
 
 const props = defineProps<{
     gondola: Gondola;
@@ -48,7 +49,20 @@ const updateSegment = (segment: Shelf | Segment) => {
 
 // Função para repassar eventos de transferência de layer
 const handleTransferLayer = (transferData: TransferLayerData) => {
-    console.log('Segment: repassando transferência de layer', transferData);
-    emit('transfer-layer', transferData);
+    // @ts-ignore
+    router.put(route('segments.shelf-update',transferData.segment.id), { 
+        layerId: transferData.layer.id,
+        toShelfId: transferData.toShelfId,// para onde está indo 
+        segmentId:  props.shelf.section_id,// qual segmento está indo
+    },{
+        preserveState: false,
+        onSuccess: () => {
+            console.log('Transferência de layer concluída com sucesso');
+        },
+        onError: () => {
+            console.error('Erro ao transferir layer');
+        }
+    });
+    // emit('transfer-layer', transferData);
 };
 </script>

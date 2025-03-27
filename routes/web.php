@@ -23,6 +23,8 @@ Route::middleware(['auth', 'verified', 'web'])
 
         Route::resource('segments', \Callcocam\Plannerate\Http\Controllers\SegmentController::class)
             ->names('segments');
+
+            Route::put('/segments/{segment}/shelf', [ \Callcocam\Plannerate\Http\Controllers\SegmentController::class, 'shelfUpdate'])->name('segments.shelf-update');
             
         Route::resource('layers', \Callcocam\Plannerate\Http\Controllers\LayerController::class)
             ->names('layers');

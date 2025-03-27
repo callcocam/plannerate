@@ -47,7 +47,7 @@
                 Componente Segments: Renderiza os segmentos/produtos na prateleira
                 Passa as props necessárias e configura handlers para eventos emitidos
             -->
-            <Segments
+            <!-- <Segments
                 :shelf="shelf"
                 :segments="shelf.segments"
                 :gondola="gondola"
@@ -55,8 +55,8 @@
                 @update:segment="updateSegment"
                 @update:layer="updateLayer"
                 @transfer-layer="handleTransferLayer"
-            />
-
+            /> -->
+            <Segments :shelf="shelf" :segments="shelf.segments" :gondola="gondola" :scale-factor="scaleFactor" />
             <!-- Indicador de posição exibido durante o arrasto da prateleira -->
             <div v-if="isDragging" class="position-indicator">Base: {{ Math.round(getBasePosition()) }}cm</div>
 
@@ -87,6 +87,7 @@
  * Representa uma prateleira individual dentro de uma gôndola
  * Gerencia posicionamento, arrastar/soltar e interação com produtos/segmentos
  */
+import { router } from '@inertiajs/vue3';
 import { Move } from 'lucide-vue-next';
 import { computed, inject, onMounted, onUnmounted, ref, Ref, watch } from 'vue';
 import useShelfDrag from './../../composables/useShelfDrag'; // Composable para lógica de drag & drop
@@ -367,7 +368,6 @@ const onDrop = (event: DragEvent) => {
     try {
         // Processa os dados do item arrastado
         const draggedItem = JSON.parse(data);
-
         // Processa o drop conforme o tipo do item arrastado
         if (draggedItem.type === 'product') {
             // Implementação existente para produtos
@@ -389,17 +389,7 @@ const onDrop = (event: DragEvent) => {
 // Função para processar o drop de uma layer
 const handleLayerDrop = (layerData: any) => {
     console.log('Layer drop recebido:', layerData);
-
-    // Se a layer já está nesta prateleira, ignorar
-    if (layerData.shelfId === props.shelf.id) return;
-
-    // Emitir evento para transferir a layer para esta prateleira
-    emit('transfer-layer', {
-        fromShelfId: layerData.shelfId,
-        toShelfId: props.shelf.id,
-        layerId: layerData.layerId,
-        segmentId: layerData.segmentId,
-    } as any);
+ 
 };
 
 // Manipulador para o evento transfer-layer emitido pelos componentes filhos

@@ -21,24 +21,7 @@
                 :scale-factor="scaleFactor"
                 :style="getProductStyle(index)"
             />
-            <!-- Alça de arrasto -->
-            <div class="layer-drag-handle" title="Arraste para mover para outra prateleira">
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                >
-                    <path d="M18 8L6 8"></path>
-                    <path d="M18 16L6 16"></path>
-                    <path d="M18 12L6 12"></path>
-                </svg>
-            </div>
+           
         </div>
     </LayerContext>
 </template>
@@ -400,10 +383,10 @@ function updateLayerQuantity(newQuantity: number) {
         // @ts-ignore
         router.put(route('layers.update', { layer: layer.id }), data, {
             preserveScroll: true,
-            preserveState: true,
+            preserveState: false, // Não manter o estado atual durante a requisição
             onSuccess: () => {
                 // Emitir o evento imediatamente para atualização visual instantânea
-                emit('update:layer', updatedShelf);
+                // emit('update:layer', updatedShelf);
             },
             onError: (errors) => {
                 console.error('Erro ao atualizar quantidade de layer:', errors);

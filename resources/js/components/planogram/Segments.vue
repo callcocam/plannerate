@@ -47,8 +47,7 @@ const updateSegment = (segment: Segment | Shelf) => {
 };
 
 // Função para repassar eventos de transferência de layer
-const handleTransferLayer = (transferData: TransferLayerData) => {
-    console.log('Segments: repassando transferência de layer', transferData);
+const handleTransferLayer = (transferData: TransferLayerData) => { 
     emit('transfer-layer', transferData);
 };
 </script>

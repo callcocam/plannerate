@@ -27,6 +27,7 @@ export interface Section {
 
 export interface Shelf {
     id: string;
+    section_id: string;
     name?: string;
     position: number;
     height: number;

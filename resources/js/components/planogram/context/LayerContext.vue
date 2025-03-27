@@ -53,7 +53,7 @@ const deleteProduct = () => {
         // @ts-ignore
         router.delete(route('layers.destroy', { layer: props.layer.id }), {
             preserveScroll: true,
-            preserveState: true,
+            preserveState: false,
             onSuccess: () => {
                 emit('delete', props.layer);
             },
