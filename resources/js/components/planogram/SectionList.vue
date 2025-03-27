@@ -507,7 +507,6 @@ const handleSectionContainerClick = (event) => {
     }
 };
 </script>
-
 <template>
     <!-- Container principal para as seções, com referência para Sortable.js -->
     <div class="relative flex min-h-screen items-center" ref="sectionsContainer" @click="handleSectionContainerClick">
@@ -518,10 +517,15 @@ const handleSectionContainerClick = (event) => {
         </div>
 
         <!-- Loop pelas seções para renderizá-las -->
-        <div v-for="(section, index) in localSections" :key="section.id" class="section-item relative">
+        <div 
+            v-for="(section, index) in localSections" 
+            :key="section.id" 
+            class="section-item relative"
+            :data-section-id="section.id"
+        >
             <SectionContext :section="section" :gondola="gondola" @transfer-shelf="transferShelf">
                 <!-- Item de seção arrastável -->
-                <div :style="getSectionStyle(section, index)">
+                <div :style="getSectionStyle(section, index)" class="section-content">
                     <!-- Alça de arrasto para poder arrastar a seção -->
                     <div class="section-drag-handle">
                         <Move class="h-4 w-4 cursor-grab" />
@@ -578,7 +582,7 @@ const handleSectionContainerClick = (event) => {
 /* Estilo para os itens de seção */
 .section-item {
     transition: all 0.2s ease;
-    margin: 0 2px;
+    margin: 0;
 }
 
 /* Estilo para a alça de arrasto */
@@ -620,5 +624,58 @@ const handleSectionContainerClick = (event) => {
 
 .section-drag {
     z-index: 20;
+}
+
+/* Estilo aprimorado para seção alvo durante arrasto */
+.potential-drop-target {
+  outline: 3px dashed #3b82f6 !important;
+  outline-offset: -2px;
+  background-color: rgba(59, 130, 246, 0.1);
+  position: relative;
+  z-index: 10;
+  transition: all 0.2s ease-in-out;
+}
+
+.potential-drop-target::before {
+  content: "Soltar aqui";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #3b82f6;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: bold;
+  z-index: 11;
+  pointer-events: none;
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
+.potential-drop-target::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: rgba(59, 130, 246, 0.1);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Melhoria para o comportamento da seção durante o hover/arrasto */
+.section-item {
+  transition: all 0.2s ease;
+  margin: 0;
+  position: relative;
+}
+
+.section-content {
+  position: relative;
+  transition: transform 0.2s ease-in-out;
+}
+
+.potential-drop-target .section-content {
+  transform: scale(1.02);
 }
 </style>

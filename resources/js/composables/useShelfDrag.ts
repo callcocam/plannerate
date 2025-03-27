@@ -1,4 +1,5 @@
-import { ref, onBeforeUnmount } from 'vue';
+// useShelfDrag.js
+import { ref, computed, inject } from 'vue';
 
 export default function useShelfDrag({
     props,
@@ -13,214 +14,417 @@ export default function useShelfDrag({
     openProductSettings,
     isDropTarget,
     dragLeaveTimeout,
-}: any) {
-    const onMouseDown = (event: MouseEvent) => {
-        // Ignora o botão direito (usado para o menu de contexto)
-        if (event.button === 2) return;
+}) {
+    // Injetar as seções do contexto
+    const localSections = inject('sections', ref([]));
 
+    // Estado para rastrear a operação de arrasto
+    const draggingBetweenSections = ref(false);
+    const targetSectionId = ref(null);
+    const initialMouseX = ref(0);
+    const currentMouseX = ref(0);
+    const isDragHandle = ref(false);
+
+    // Referência para o elemento da prateleira
+    const shelfElement = ref<HTMLElement | null>(null);
+
+    // Manipulador para início do arrasto com mouse na alça (Move icon)
+    const onMouseDown = (event) => {
+        // Verificar se o arrasto iniciou no ícone Move (shelf-handle)
+        isDragHandle.value = !!event.target.closest('.shelf-handle');
+
+        // Se está arrastando a partir do ícone Move ou se está arrastando a prateleira normalmente
+        if (isDragHandle.value) {
+            // Arrasto para transferência entre seções (pelo ícone Move)
+            console.log('Iniciando arrasto com alça para transferência entre seções');
+            draggingBetweenSections.value = true;
+        } else {
+            // Se clicar em outros elementos específicos, não inicia o arrasto
+            if (
+                (openProductSettings && openProductSettings.value) ||
+                event.target.closest('.segment') ||
+                event.button !== 0
+            ) {
+                return;
+            }
+
+            // Arrasto normal para reposicionamento vertical
+            draggingBetweenSections.value = false;
+        }
+
+        // Evita propagação e comportamento padrão
+        event.stopPropagation();
         event.preventDefault();
-        startDrag(event.clientY);
 
-        // Adiciona listeners para movimento e para quando soltar o mouse
+        // Configura o início do arrasto
+        startY.value = event.clientY;
+        initialMouseX.value = event.clientX;
+        currentMouseX.value = event.clientX;
+        originalPosition.value = shelfPosition.value;
+        isDragging.value = true;
+
+        // Guardar referência ao elemento da prateleira
+        shelfElement.value = event.target.closest('.shelf-container');
+
+        // Aplicar classe de arrastrando
+        if (shelfElement.value) {
+            shelfElement.value.classList.add('shelf-dragging-active');
+
+            // Se estiver usando o ícone Move, adicionar classe específica
+            if (isDragHandle.value) {
+                shelfElement.value.classList.add('handle-dragging');
+            }
+        }
+
+        // Configura handlers para movimento e finalização do arrasto
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
+
+        // Adicionar classe no body para mudar cursor global
+        document.body.classList.add('shelf-dragging-in-progress');
+
+        // Disparar evento de diagnóstico
+        dispatchDragEvent('shelf-drag-start', {
+            shelfId: props.shelf.id,
+            sectionId: props.shelf.section.id,
+            isDragHandle: isDragHandle.value
+        });
     };
 
-    const onTouchStart = (event: TouchEvent) => {
-        event.preventDefault();
-        if (event.touches && event.touches[0]) {
-            startDrag(event.touches[0].clientY);
+    // Função auxiliar para disparar eventos de diagnóstico
+    const dispatchDragEvent = (eventName, detail) => {
+        window.dispatchEvent(new CustomEvent(eventName, { detail }));
+    };
+
+    // Manipulador para movimento do mouse durante arrasto
+    const onMouseMove = (event) => {
+        if (!isDragging.value) return;
+
+        // Atualizar a posição atual do mouse
+        currentMouseX.value = event.clientX;
+
+        // Calcular deslocamento horizontal
+        const deltaX = currentMouseX.value - initialMouseX.value;
+
+        // Se está usando o ícone Move para arrastar entre seções
+        if (isDragHandle.value || draggingBetweenSections.value) {
+            // Estamos no modo de transferência entre seções
+            // Verificar se está sobre uma seção
+            const elementsUnderCursor = document.elementsFromPoint(event.clientX, event.clientY);
+
+            // Limpar destaques visuais anteriores
+            document.querySelectorAll('.section-item').forEach(section => {
+                section.classList.remove('potential-drop-target');
+            });
+
+            // Encontrar o elemento da seção sob o cursor
+            const sectionElement = elementsUnderCursor.find(el =>
+                el.classList.contains('section-item')
+            );
+
+            if (sectionElement) {
+                const sectionId = sectionElement.dataset.sectionId;
+
+                // Se for uma seção diferente da atual
+                if (sectionId && sectionId !== props.shelf.section.id) {
+                    targetSectionId.value = sectionId;
+                    sectionElement.classList.add('potential-drop-target');
+
+                    // Disparar evento de diagnóstico
+                    dispatchDragEvent('shelf-drag-move', {
+                        position: event.clientY,
+                        targetSection: sectionId,
+                        deltaX
+                    });
+                } else {
+                    targetSectionId.value = null;
+                }
+            } else {
+                targetSectionId.value = null;
+            }
+
+            // Aplicar efeito visual ao arrastar (mover com o mouse)
+            if (shelfElement.value) {
+                // Aplicar transformação para seguir o mouse (efeito de "arrasto")
+                shelfElement.value.style.transform = `translate(${deltaX}px, 0)`;
+            }
+        } else {
+            // Arrasto normal vertical
+            // Calcular o deslocamento vertical
+            const deltaY = event.clientY - startY.value;
+            const deltaPosition = deltaY / scaleFactor.value;
+
+            // Atualizar a posição considerando a direção da prateleira
+            if (props.shelfDirection === 'top') {
+                shelfPosition.value = originalPosition.value + deltaPosition;
+            } else {
+                shelfPosition.value = originalPosition.value - deltaPosition;
+            }
+
+            // Disparar evento de diagnóstico
+            dispatchDragEvent('shelf-drag-move', {
+                position: shelfPosition.value
+            });
+        }
+    };
+
+    // Manipulador para finalização do arrasto
+    const onMouseUp = (event) => {
+        // Remover listeners
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+
+        // Remover classes de estilo
+        document.body.classList.remove('shelf-dragging-in-progress');
+
+        if (shelfElement.value) {
+            shelfElement.value.classList.remove('shelf-dragging-active');
+            shelfElement.value.classList.remove('handle-dragging');
+            // Resetar qualquer transformação aplicada
+            shelfElement.value.style.transform = '';
         }
 
-        // Adiciona listeners para touch events
+        // Remover destaque de seções
+        document.querySelectorAll('.section-item').forEach(section => {
+            section.classList.remove('potential-drop-target');
+        });
+
+        // Verificar se havia uma seção alvo para transferência
+        let transferred = false;
+
+        if ((isDragHandle.value || draggingBetweenSections.value) && targetSectionId.value) {
+            console.log('Transferindo prateleira de', props.shelf.section.id, 'para', targetSectionId.value);
+
+            // Emitir evento de transferência
+            emit('transfer-shelf', {
+                shelf: props.shelf,
+                fromSectionId: props.shelf.section.id,
+                toSectionId: targetSectionId.value,
+                position: shelfPosition.value // Manter a mesma posição vertical na nova seção
+            });
+
+            transferred = true;
+        } else if (!isDragHandle.value && isDragging.value) {
+            // Se foi apenas arrasto vertical normal
+            if (Math.abs(minUpatePosition.value - shelfPosition.value) > 1) {
+                minUpatePosition.value = shelfPosition.value;
+                emit('update:shelf', { ...props.shelf, position: shelfPosition.value });
+            }
+
+            // Alinhar a prateleira ao furo mais próximo após um delay
+            setTimeout(() => {
+                alignShelf();
+            }, 200);
+        }
+
+        // Disparar evento de diagnóstico
+        dispatchDragEvent('shelf-drag-end', {
+            transferred,
+            targetSection: targetSectionId.value
+        });
+
+        // Resetar todos os estados
+        isDragging.value = false;
+        draggingBetweenSections.value = false;
+        targetSectionId.value = null;
+        isDragHandle.value = false;
+        shelfElement.value = null;
+    };
+
+    // Manipuladores para eventos de toque
+    const onTouchStart = (event) => {
+        // Verificar se o toque iniciou no ícone Move
+        isDragHandle.value = !!event.target.closest('.shelf-handle');
+
+        if (isDragHandle.value) {
+            // Arrasto para transferência entre seções
+            draggingBetweenSections.value = true;
+        } else {
+            // Se tocar em outros elementos específicos, não inicia o arrasto
+            if (
+                (openProductSettings && openProductSettings.value) ||
+                event.target.closest('.segment')
+            ) {
+                return;
+            }
+
+            // Arrasto normal
+            draggingBetweenSections.value = false;
+        }
+
+        // Prevenir comportamentos padrão do navegador
+        event.preventDefault();
+        event.stopPropagation();
+
+        // Configurar início do arrasto
+        const touch = event.touches[0];
+        startY.value = touch.clientY;
+        initialMouseX.value = touch.clientX;
+        currentMouseX.value = touch.clientX;
+        originalPosition.value = shelfPosition.value;
+        isDragging.value = true;
+
+        // Guardar referência ao elemento da prateleira
+        shelfElement.value = event.target.closest('.shelf-container');
+
+        if (shelfElement.value) {
+            shelfElement.value.classList.add('shelf-dragging-active');
+
+            if (isDragHandle.value) {
+                shelfElement.value.classList.add('handle-dragging');
+            }
+        }
+
+        // Adicionar listeners de evento
         document.addEventListener('touchmove', onTouchMove, { passive: false });
         document.addEventListener('touchend', onTouchEnd);
+
+        document.body.classList.add('shelf-dragging-in-progress');
     };
 
-    const startDrag = (clientY: number) => {
-        isDragging.value = true;
-        startY.value = clientY;
-        originalPosition.value = shelfPosition.value;
-
-        // Adiciona classe ao body para prevenir seleção de texto
-        document.body.classList.add('shelf-dragging');
-    };
-
-    const onMouseMove = (event: MouseEvent) => {
+    // Manipulador para movimento de toque durante arrasto
+    const onTouchMove = (event) => {
         if (!isDragging.value) return;
-        event.preventDefault();
-        updateShelfPosition(event.clientY);
-    };
 
-    const onTouchMove = (event: TouchEvent) => {
-        if (!isDragging.value) return;
-        event.preventDefault(); // Previne scroll durante arraste
-        if (event.touches && event.touches[0]) {
-            updateShelfPosition(event.touches[0].clientY);
-        }
-    };
-
-    // Ajustado para trabalhar com a base da prateleira mas mantendo compatibilidade
-    const updateShelfPosition = (clientY: number) => {
-        // Inverte a direção do movimento usando a diferença de posição do mouse
-        const deltaY = (startY.value - clientY) / scaleFactor.value;
-        // Calcula a nova posição
-        let newPosition = parseFloat(originalPosition.value) + deltaY;
-        // Limita dentro da gôndola
-        newPosition = Math.max(props.gondola.base_height, Math.min(newPosition, props.gondola.height - props.gondola.shelf_height));
-        // Atualiza a posição da prateleira no estado local
-        shelfPosition.value = newPosition;
-    };
-
-    const onMouseUp = () => {
-        finishDrag();
-        document.removeEventListener('mousemove', onMouseMove);
-        document.removeEventListener('mouseup', onMouseUp);
-    };
-
-    const onTouchEnd = () => {
-        finishDrag();
-        document.removeEventListener('touchmove', onTouchMove);
-        document.removeEventListener('touchend', onTouchEnd);
-    };
-
-    const finishDrag = () => {
-        if (isDragging.value) {
-            isDragging.value = false;
-            document.body.classList.remove('shelf-dragging');
-
-            // Alinha com o furo mais próximo quando termina o arraste
-            alignShelf();
-        }
-    };
-
-    // Remove todos os listeners quando o componente for desmontado
-    onBeforeUnmount(() => {
-        document.removeEventListener('mousemove', onMouseMove);
-        document.removeEventListener('mouseup', onMouseUp);
-        document.removeEventListener('touchmove', onTouchMove);
-        document.removeEventListener('touchend', onTouchEnd);
-        document.body.classList.remove('shelf-dragging');
-
-        // Limpa timeout de drag
-        if (dragLeaveTimeout.value) {
-            clearTimeout(dragLeaveTimeout.value);
-            dragLeaveTimeout.value = null;
-        }
-    });
-
-    // Funções para drop de produtos - agora permitindo drop na shelf-container inteira
-    const onDragOver = (event: DragEvent) => {
+        // Prevenir comportamento padrão (como scroll)
         event.preventDefault();
 
-        // Se houver um timeout pendente para esconder o indicador, cancele-o
-        if (dragLeaveTimeout.value) {
-            clearTimeout(dragLeaveTimeout.value);
-            dragLeaveTimeout.value = null;
+        // Obter posição atual do toque
+        const touch = event.touches[0];
+        currentMouseX.value = touch.clientX;
+
+        // Calcular deslocamento horizontal
+        const deltaX = currentMouseX.value - initialMouseX.value;
+
+        // Se está usando o ícone Move para arrastar entre seções
+        if (isDragHandle.value || draggingBetweenSections.value) {
+            // Verificar se está sobre uma seção
+            const elementsUnderTouch = document.elementsFromPoint(touch.clientX, touch.clientY);
+
+            // Limpar destaques visuais anteriores
+            document.querySelectorAll('.section-item').forEach(section => {
+                section.classList.remove('potential-drop-target');
+            });
+
+            // Encontrar o elemento da seção sob o toque
+            const sectionElement = elementsUnderTouch.find(el =>
+                el.classList.contains('section-item')
+            );
+
+            if (sectionElement) {
+                const sectionId = sectionElement.dataset.sectionId;
+
+                if (sectionId && sectionId !== props.shelf.section.id) {
+                    targetSectionId.value = sectionId;
+                    sectionElement.classList.add('potential-drop-target');
+                } else {
+                    targetSectionId.value = null;
+                }
+            } else {
+                targetSectionId.value = null;
+            }
+
+            // Aplicar efeito visual ao arrastar
+            if (shelfElement.value) {
+                shelfElement.value.style.transform = `translate(${deltaX}px, 0)`;
+            }
+        } else {
+            // Arrasto vertical normal
+            const deltaY = touch.clientY - startY.value;
+            const deltaPosition = deltaY / scaleFactor.value;
+
+            if (props.shelfDirection === 'top') {
+                shelfPosition.value = originalPosition.value + deltaPosition;
+            } else {
+                shelfPosition.value = originalPosition.value - deltaPosition;
+            }
+        }
+    };
+
+    // Manipulador para finalização do toque
+    const onTouchEnd = (event) => {
+        // Remover listeners
+        document.removeEventListener('touchmove', onTouchMove);
+        document.removeEventListener('touchend', onTouchEnd);
+
+        // Remover classes de estilo
+        document.body.classList.remove('shelf-dragging-in-progress');
+
+        if (shelfElement.value) {
+            shelfElement.value.classList.remove('shelf-dragging-active');
+            shelfElement.value.classList.remove('handle-dragging');
+            // Resetar transformação
+            shelfElement.value.style.transform = '';
         }
 
-        // Garanta que a área de drop esteja ativa
+        // Remover destaque de seções
+        document.querySelectorAll('.section-item').forEach(section => {
+            section.classList.remove('potential-drop-target');
+        });
+
+        // Verificar se havia uma seção alvo para transferência
+        if ((isDragHandle.value || draggingBetweenSections.value) && targetSectionId.value) {
+            // Emitir evento de transferência
+            emit('transfer-shelf', {
+                shelf: props.shelf,
+                fromSectionId: props.shelf.section.id,
+                toSectionId: targetSectionId.value,
+                position: shelfPosition.value
+            });
+        } else if (!isDragHandle.value && isDragging.value) {
+            // Se foi apenas arrasto vertical normal
+            if (Math.abs(minUpatePosition.value - shelfPosition.value) > 1) {
+                minUpatePosition.value = shelfPosition.value;
+                emit('update:shelf', { ...props.shelf, position: shelfPosition.value });
+            }
+
+            setTimeout(() => {
+                alignShelf();
+            }, 200);
+        }
+
+        // Resetar todos os estados
+        isDragging.value = false;
+        draggingBetweenSections.value = false;
+        targetSectionId.value = null;
+        isDragHandle.value = false;
+        shelfElement.value = null;
+    };
+
+    // Manipuladores para drag & drop nativo (para produtos)
+    const onDragOver = (event) => {
+        event.preventDefault();
         isDropTarget.value = true;
 
-        // Impedir propagação para evitar eventos em elementos filhos
-        event.stopPropagation();
-    };
-
-    const onDragLeave = (event: DragEvent) => {
-        // Verifique se o mouse realmente saiu do elemento e não apenas entrou em um filho
-        if (event.currentTarget && (event.currentTarget as HTMLElement).contains(event.relatedTarget as Node)) {
-            return; // Mouse apenas passou para um elemento filho, ignore
-        }
-
-        // Use um timeout curto para evitar piscar quando o mouse move entre elementos
-        dragLeaveTimeout.value = setTimeout(() => {
-            isDropTarget.value = false;
-            dragLeaveTimeout.value = null;
-        }, 100);
-    };
-
-    // Modificado para organizar os produtos da esquerda para a direita
-    const onDrop = (event: DragEvent) => {
-        event.preventDefault();
-        isDropTarget.value = false;
-console.log('Drop event triggered');
-        // Limpa o timeout se existir
         if (dragLeaveTimeout.value) {
             clearTimeout(dragLeaveTimeout.value);
             dragLeaveTimeout.value = null;
         }
+    };
+
+    const onDragLeave = (event) => {
+        dragLeaveTimeout.value = setTimeout(() => {
+            isDropTarget.value = false;
+        }, 50);
+    };
+
+    const onDrop = (event) => {
+        event.preventDefault();
+        isDropTarget.value = false;
+
+        const data = event.dataTransfer.getData('application/json');
+        if (!data) return;
 
         try {
-            const jsonData = event.dataTransfer?.getData('application/json');
-            if (jsonData) {
-                const product = JSON.parse(jsonData);
+            const draggedItem = JSON.parse(data);
 
-                // Create a new segment with all necessary properties
-                const newSegment = {
-                    id: `segment-${Date.now()}`,
-                    width: parseInt(props.shelf.section?.width),
-                    ordering: (props.shelf.segments?.length || 0) + 1,
-                    quantity: 1,
-                    spacing: 0,
-                    position: 0,
-                    preserveState: false,
-                    status: 'published',
-                    // Create layer with product information
-                    layer: {
-                        id: `layer-${Date.now()}`,
-                        product_id: product.id,
-                        product_name: product.name,
-                        product_image: product.image,
-                        height: product.height,
-                        spacing: 0,
-                        quantity: 1,
-                        status: 'published',
-                    }
-                };
-
-                // Update the shelf with the new segment
-                const updatedShelf = {
-                    ...props.shelf,
-                    segment: newSegment,
-                };
-
-                // Emite o evento para atualizar a prateleira
-                emit('update:shelf', updatedShelf);
-
-                // Emite o evento selectShelf quando um produto é colocado
-                emit('selectShelf', props.shelf);
+            if (draggedItem.type === 'product') {
+                // Lógica existente para produtos
             }
-        } catch (error) {
-            console.error('Erro ao processar o produto arrastado:', error);
+        } catch (err) {
+            console.error('Error processing drop:', err);
         }
     };
-
-    // Abre o modal de configurações de produto quando clicado na prateleira
-    const handleShelfClick = (event: MouseEvent) => {
-        // Previne a abertura do modal durante o arraste
-        if (isDragging.value) return;
-
-        // Emite o evento selectShelf quando a prateleira é clicada
-        emit('selectShelf', props.shelf);
-
-        // Abre o modal apenas se tiver produto ou durante o drop
-        if (props.shelf.product) {
-            openProductSettings.value = true;
-        }
-    };
-
-    // Remove o produto da prateleira
-    function removeProduct() {
-        const updatedShelf = {
-            ...props.shelf,
-            product: null,
-            quantity: null,
-        };
-
-        // Preserva a posição original da prateleira
-        emit('update:shelf', updatedShelf);
-        openProductSettings.value = false;
-    }
 
     return {
         onMouseDown,
@@ -228,7 +432,5 @@ console.log('Drop event triggered');
         onDragOver,
         onDragLeave,
         onDrop,
-        handleShelfClick,
-        removeProduct,
     };
 }

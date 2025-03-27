@@ -150,6 +150,7 @@
         >
             <Package class="h-6 w-6" />
         </Button>
+        <DragDebug />
     </div>
 </template>
 <script setup>
@@ -162,6 +163,7 @@ import AddPlanogramModal from './AddPlanogramModal.vue';
 import MovableContainer from './MovableContainer.vue';
 import ProductDrawer from './ProductDrawer.vue';
 import SectionList from './SectionList.vue';
+import DragDebug from './DragDebug.vue';
 const props = defineProps({
     record: {
         type: Object,
