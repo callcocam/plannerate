@@ -20,7 +20,7 @@ export default function useShelfDrag({
 
     // Estado para rastrear a operação de arrasto
     const draggingBetweenSections = ref(false);
-    const targetSectionId = ref(null);
+    const targetSectionId = ref<any>(null);
     const initialMouseX = ref(0);
     const currentMouseX = ref(0);
     const isDragHandle = ref(false);
@@ -123,7 +123,7 @@ export default function useShelfDrag({
             );
 
             if (sectionElement) {
-                const sectionId = sectionElement.dataset.sectionId;
+                const sectionId = (sectionElement as HTMLElement).dataset.sectionId;
 
                 // Se for uma seção diferente da atual
                 if (sectionId && sectionId !== props.shelf.section.id) {
@@ -312,7 +312,7 @@ export default function useShelfDrag({
             );
 
             if (sectionElement) {
-                const sectionId = sectionElement.dataset.sectionId;
+                const sectionId = (sectionElement as HTMLElement).dataset.sectionId;
 
                 if (sectionId && sectionId !== props.shelf.section.id) {
                     targetSectionId.value = sectionId;
