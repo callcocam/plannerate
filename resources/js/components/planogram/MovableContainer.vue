@@ -14,7 +14,7 @@
             </div>
 
             <!-- Slot para o conteúdo original (seu SectionList) -->
-            <div class="content-slot">
+            <div class="content-slot ">
                 <slot></slot>
             </div>
 
@@ -200,9 +200,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .movable-container {
-    position: relative;
-    width: 100%;
-    height: 100%;
+    position: relative; 
     min-height: 300px;
     overflow: visible;
 }
@@ -210,17 +208,14 @@ onBeforeUnmount(() => {
 .movable-content {
     position: relative;
     transition: transform 0.1s ease;
-    will-change: transform;
-    min-width: 100%;
-    min-height: 100%;
+    will-change: transform; 
 }
 
 .movable-content.is-dragging {
     transition: none;
 }
 
-.content-slot {
-    width: 100%;
+.content-slot { 
     position: relative;
 }
 
@@ -244,16 +239,13 @@ onBeforeUnmount(() => {
 /* Estilo para o botão de centralizar */
 .center-button {
     position: absolute;
-    bottom: 15px;
-    right: 15px;
+    top: 15%;  
+    right: -40px;
     width: 36px;
     height: 36px;
     z-index: 100;
 }
-
-.center-button:hover {
-    transform: scale(1.1);
-}
+ 
 
 /* Responsividade para telas menores */
 @media (max-width: 640px) {

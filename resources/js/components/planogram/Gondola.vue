@@ -116,9 +116,9 @@
         <div class="mt-2 border-b-2 border-gray-300 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-800">
             <div
                 :style="containerStyle"
-                class="mx-auto flex min-h-screen items-center justify-center border-2 border-gray-300 p-1 dark:border-gray-700"
+                class="mx-auto flex  items-center justify-center "
             >
-                <MovableContainer :storage-id="'gondola-' + record.id">
+                <MovableContainer :storage-id="'gondola-' + record.id" :margin="50">
                     <SectionList
                         v-model:sections="sections"
                         :scale-factor="scaleFactor"
