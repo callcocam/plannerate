@@ -43,19 +43,7 @@
             draggable="true"
         >
             <Move class="shelf-handle absolute -left-5 z-10 h-4 w-4 cursor-pointer text-white" />
-            <!-- 
-                Componente Segments: Renderiza os segmentos/produtos na prateleira
-                Passa as props necessárias e configura handlers para eventos emitidos
-            -->
-            <!-- <Segments
-                :shelf="shelf"
-                :segments="shelf.segments"
-                :gondola="gondola"
-                :scale-factor="scaleFactor"
-                @update:segment="updateSegment"
-                @update:layer="updateLayer"
-                @transfer-layer="handleTransferLayer"
-            /> -->
+          
             <Segments :shelf="shelf" :segments="shelf.segments" :gondola="gondola" :scale-factor="scaleFactor" />
             <!-- Indicador de posição exibido durante o arrasto da prateleira -->
             <div v-if="isDragging" class="position-indicator">Base: {{ Math.round(getBasePosition()) }}cm</div>
@@ -86,8 +74,7 @@
  * Componente Shelf
  * Representa uma prateleira individual dentro de uma gôndola
  * Gerencia posicionamento, arrastar/soltar e interação com produtos/segmentos
- */
-import { router } from '@inertiajs/vue3';
+ */ 
 import { Move } from 'lucide-vue-next';
 import { computed, inject, onMounted, onUnmounted, ref, Ref, watch } from 'vue';
 import useShelfDrag from './../../composables/useShelfDrag'; // Composable para lógica de drag & drop
@@ -404,10 +391,7 @@ const onShelfClick = (event: MouseEvent) => {
     event.stopPropagation();
 
     // Se esta prateleira já está selecionada, deseleciona
-    if (isSelected.value) {
-        // Desseleciona a prateleira (como toggle)
-        activeShelf.value = null;
-    } else {
+    if (!isSelected.value) { 
         // Seleciona esta prateleira e desseleciona qualquer outra
         activeShelf.value = props.shelf;
 

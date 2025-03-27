@@ -94,7 +94,7 @@
 
                     <!-- Botões agrupados -->
                     <div class="flex items-center space-x-3">
-                        <!-- Botão flutuante para abrir o drawer de produtos -->
+                        <!-- Botão para abrir o drawer de produtos -->
                         <Button variant="primary" size="icon" @click="showProductDrawer = true">
                             <Package class="h-6 w-6" />
                         </Button>
@@ -118,7 +118,6 @@
                 :style="containerStyle"
                 class="mx-auto flex min-h-screen items-center justify-center border-2 border-gray-300 p-1 dark:border-gray-700"
             >
-                <!-- Use o wrapper com alça de arrasto aqui -->
                 <MovableContainer :storage-id="'gondola-' + record.id">
                     <SectionList
                         v-model:sections="sections"
@@ -141,18 +140,9 @@
 
         <!-- Slide-over de produtos -->
         <ProductDrawer v-model:open="showProductDrawer" @select-product="handleProductSelect" />
-
-        <!-- Botão flutuante para abrir o drawer de produtos -->
-        <Button
-            variant="primary"
-            class="fixed bottom-6 right-6 flex h-12 w-12 items-center justify-center rounded-full shadow-lg"
-            @click="showProductDrawer = true"
-        >
-            <Package class="h-6 w-6" />
-        </Button>
-        <DragDebug />
     </div>
 </template>
+
 <script setup>
 import { Button } from '@/components/ui/button';
 import { SmallInput } from '@/components/ui/input';
@@ -163,20 +153,36 @@ import AddPlanogramModal from './AddPlanogramModal.vue';
 import MovableContainer from './MovableContainer.vue';
 import ProductDrawer from './ProductDrawer.vue';
 import SectionList from './SectionList.vue';
-import DragDebug from './DragDebug.vue';
+
+// Props do componente
 const props = defineProps({
     record: {
         type: Object,
+        required: true,
     },
     sections: {
         type: Array,
+        default: () => [],
     },
 });
 
-// Use toRaw to break reactivity chain when initializing
+// =====================================
+// Estado do componente
+// =====================================
 const sections = ref(JSON.parse(JSON.stringify(props.record.sections || [])));
+const scaleFactor = ref(props.record.scale_factor);
+const showGrid = ref(true);
+const showNewPlanogramModal = ref(false);
+const showProductDrawer = ref(false);
+const selectedShelf = ref(null);
 
-// Watch for changes in props.record.sections (if they come from server)
+// =====================================
+// Watchers
+// =====================================
+
+/**
+ * Observa mudanças nas seções vindas do servidor
+ */
 watch(
     () => props.record.sections,
     (newSections) => {
@@ -187,12 +193,40 @@ watch(
     { deep: true },
 );
 
-// Helper function to compare arrays without triggering reactivity
+// =====================================
+// Computed Properties
+// =====================================
+
+/**
+ * Estilo do container principal, inclui a grade de fundo
+ */
+const containerStyle = computed(() => {
+    const grid = calculateWidth(10); // Grid de 10cm
+    return {
+        position: 'relative',
+        backgroundImage: showGrid.value
+            ? 'linear-gradient(to right, rgba(75, 85, 99, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(75, 85, 99, 0.3) 1px, transparent 1px)'
+            : 'none',
+        backgroundSize: showGrid.value ? `${grid}px ${grid}px` : 'auto',
+        width: `100%`,
+    };
+});
+
+// =====================================
+// Funções auxiliares
+// =====================================
+
+/**
+ * Compara arrays de seções sem acionar reatividade
+ * @param {Array} arr1 - Primeiro array
+ * @param {Array} arr2 - Segundo array
+ * @returns {Boolean} - Se os arrays são equivalentes
+ */
 function compareArrays(arr1, arr2) {
     if (!arr1 || !arr2) return false;
     if (arr1.length !== arr2.length) return false;
 
-    // Simple comparison by id
+    // Comparação simples por ID
     const ids1 = arr1
         .map((s) => s.id)
         .sort()
@@ -206,60 +240,41 @@ function compareArrays(arr1, arr2) {
 
 /**
  * Calcula a largura em pixels baseada em centímetros
- * @param width - Largura em centímetros
- * @returns Largura em pixels
+ * @param {Number} width - Largura em centímetros
+ * @returns {Number} - Largura em pixels
  */
 function calculateWidth(width) {
     return width * scaleFactor.value;
 }
-// =====================================
-// Computed Properties
-// =====================================
-
-/**
- * Estilo do container principal, inclui a grade de fundo
- */
-const containerStyle = computed(() => {
-    const grid = calculateWidth(10); // Grid de 10cm
-    const { record } = props;
-    return {
-        position: 'relative',
-        backgroundImage: showGrid.value
-            ? 'linear-gradient(to right, rgba(75, 85, 99, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(75, 85, 99, 0.3) 1px, transparent 1px)'
-            : 'none',
-        backgroundSize: showGrid.value ? `${grid}px ${grid}px` : 'auto',
-        width: `100%`,
-    };
-});
-const scaleFactor = ref(props.record.scale_factor);
-const showGrid = ref(true);
 
 // =====================================
-// Funções de UI
+// Funções de controle de UI
 // =====================================
 
 /**
  * Atualiza o fator de escala da visualização
- * @param value - Novo valor de escala (entre 1 e 10)
+ * @param {Number} value - Novo valor de escala (entre 2 e 10)
  */
 function updateScale(value) {
     scaleFactor.value = value;
-    const { record } = props;
     window.axios.put(
         route('gondolas.updateScaleFactor', {
-            gondola: record.id,
+            gondola: props.record.id,
         }),
         {
             scale_factor: value,
         },
     );
 }
-const showNewPlanogramModal = ref(false);
 
-// Adiciona uma nova seção
+/**
+ * Adiciona uma nova seção via API
+ * @param {Object} section - Dados da nova seção
+ */
 const handleAddSection = (section) => {
     // Fecha o modal imediatamente
     showNewPlanogramModal.value = false;
+
     // Postar a nova seção para a API
     router.post(
         route('sections.store', {
@@ -271,34 +286,35 @@ const handleAddSection = (section) => {
         },
         {
             preserveScroll: true,
-            onSuccess: (page) => {
-                // Fazer alguma coisa com a resposta, se necessário
-            },
             onError: (errors) => {
                 console.error('Erro ao adicionar seção:', errors);
-                // Remove the temporary section in case of error
             },
         },
     );
 };
 
+/**
+ * Remove uma seção da gôndola
+ * @param {Number} sectionId - ID da seção a ser removida
+ */
 const handleSectionRemove = (sectionId) => {
-    // Then send request to server
     router.delete(route('sections.destroy', { section: sectionId }), {
         preserveScroll: true,
         onSuccess: () => {
-            // First update local state to remove the section
+            // Atualiza o estado local removendo a seção
             const updatedSections = sections.value.filter((section) => section.id !== sectionId);
             sections.value = updatedSections;
         },
         onError: (errors) => {
             console.error('Erro ao excluir seção:', errors);
-            // If error occurs, we should reload to get the correct state
             router.reload();
         },
     });
 };
 
+/**
+ * Inverte a ordem das seções da gôndola
+ */
 const invertOrder = () => {
     const newOrder = [...sections.value].reverse();
     sections.value = newOrder;
@@ -317,52 +333,51 @@ const invertOrder = () => {
     );
 };
 
-const showProductDrawer = ref(false);
-const selectedShelf = ref(null);
-
-// Handle shelf selection
+/**
+ * Manipula a seleção de prateleira para adicionar produtos
+ * @param {Object} shelf - Prateleira selecionada
+ */
 function handleShelfSelect(shelf) {
     selectedShelf.value = shelf;
     showProductDrawer.value = true;
 }
 
-// Handle product selection
+/**
+ * Adiciona um produto à prateleira selecionada
+ * @param {Object} product - Produto a ser adicionado
+ */
 function handleProductSelect(product) {
     if (!selectedShelf.value) return;
 
-    // Add product to selected shelf
     router.post(
         route('shelf-products.store'),
         {
             shelf_id: selectedShelf.value.id,
             product_id: product.id,
-            quantity: 1, // Default quantity
+            quantity: 1, // Quantidade padrão
         },
         {
             preserveScroll: true,
-            onSuccess: () => {
-                // You might want to update the shelf's products here
-                // or load them from the server
-            },
             onError: (errors) => {
                 console.error('Erro ao adicionar produto à prateleira:', errors);
             },
         },
     );
-
-    // Optionally close the drawer after selection
-    // showProductDrawer.value = false;
 }
 
-// Função para atualizar a quantidade de layer no componente pai
+/**
+ * Função para registrar atualização de layer
+ * @param {Object} layer - Layer atualizado
+ */
 const updateLayer = (layer) => {
-    // Emitir evento para atualizar a prateleira no componente pai
     console.log('Quantidade de layer atualizada com sucesso');
 };
 
-// Função para atualizar o segmento no componente pai
+/**
+ * Função para registrar atualização de segmento
+ * @param {Object} segment - Segmento atualizado
+ */
 const updateSegment = (segment) => {
-    // Emitir evento para atualizar o segmento no componente pai
     console.log('Quantidade de segmento atualizada com sucesso');
 };
 </script>
