@@ -23,33 +23,11 @@
                 </ContextMenuSubContent>
             </ContextMenuSub>
 
-            <ContextMenuSub>
-                <ContextMenuSubTrigger>Posição</ContextMenuSubTrigger>
-                <ContextMenuSubContent class="w-48">
-                    <ContextMenuItem @click="moveShelf('up')">
-                        Mover para cima
-                        <ContextMenuShortcut>↑</ContextMenuShortcut>
-                    </ContextMenuItem>
-                    <ContextMenuItem @click="moveShelf('down')">
-                        Mover para baixo
-                        <ContextMenuShortcut>↓</ContextMenuShortcut>
-                    </ContextMenuItem>
-                    <ContextMenuSeparator />
-                    <ContextMenuItem @click="alignShelf"> Alinhar com furos </ContextMenuItem>
-                </ContextMenuSubContent>
-            </ContextMenuSub>
-
-            <ContextMenuSub>
-                <ContextMenuSubTrigger>Configuração</ContextMenuSubTrigger>
-                <ContextMenuSubContent class="w-48">
-                    <ContextMenuRadioGroup v-model="currentHeight">
-                        <ContextMenuRadioItem value="2">Altura padrão (2cm)</ContextMenuRadioItem>
-                        <ContextMenuRadioItem value="4">Altura média (4cm)</ContextMenuRadioItem>
-                        <ContextMenuRadioItem value="6">Altura grande (6cm)</ContextMenuRadioItem>
-                    </ContextMenuRadioGroup>
-                </ContextMenuSubContent>
-            </ContextMenuSub>
-
+            <!-- Inverter a ordem dos layers -->
+            <ContextMenuItem @click="inverlLayers" v-if="hasMultipleLayers">
+                Inverter ordem
+                <ContextMenuShortcut>⇧⌘L</ContextMenuShortcut>
+            </ContextMenuItem>
             <ContextMenuSeparator />
             <ContextMenuItem @click="deleteShelf" class="text-red-500">
                 Excluir
@@ -66,8 +44,6 @@ import {
     ContextMenuContent,
     ContextMenuItem,
     ContextMenuLabel,
-    ContextMenuRadioGroup,
-    ContextMenuRadioItem,
     ContextMenuSeparator,
     ContextMenuShortcut,
     ContextMenuSub,
@@ -97,6 +73,15 @@ const emit = defineEmits(['update:shelf', 'delete', 'duplicate', 'move', 'align'
 
 // Usamos ref para rastrear a posição atual da prateleira durante o arraste
 const shelfCurrent = ref(props.shelf);
+
+// Verificar se existe mais de uma layer
+const hasMultipleLayers = computed(() => {
+    if (shelfCurrent.value.segments.length === 0) {
+        return false;
+    }
+    // Se não temos seções ou não temos a seção atual, retorna vazio
+    return shelfCurrent.value.segments.map((segment) => segment.layer).length > 1;
+});
 
 // Refs para controle do menu de contexto
 const currentHeight = ref(String(shelfCurrent.value.height || '2'));
@@ -275,6 +260,16 @@ const calculatePositionInSection = (targetSection) => {
 
 const alignShelf = () => {
     emit('align', shelfCurrent.value);
+};
+
+const inverlLayers = () => {
+    const updatedSegments = [...shelfCurrent.value.segments].reverse();
+    const updatedShelf = {
+        ...shelfCurrent.value,
+        segments: updatedSegments,
+        invert: true,
+    };
+    emit('update:shelf', updatedShelf);
 };
 </script>
 <style scoped></style>

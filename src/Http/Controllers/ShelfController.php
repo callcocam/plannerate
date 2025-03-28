@@ -12,6 +12,7 @@ use App\Http\Controllers\Controller;
 use Callcocam\Plannerate\Http\Requests\Shelf\StoreShelfRequest;
 use Callcocam\Plannerate\Http\Requests\Shelf\UpdateShelfRequest;
 use Callcocam\Plannerate\Models\Layer;
+use Callcocam\Plannerate\Models\Product;
 use Callcocam\Plannerate\Models\Section;
 use Callcocam\Plannerate\Models\Segment;
 use Callcocam\Plannerate\Models\Shelf;
@@ -48,16 +49,29 @@ class ShelfController extends Controller
             $validated = $request->validated();
             $segment = data_get($validated, 'segment');
             $layer = data_get($segment, 'layer');
-            if ($segment && $layer) {
-                if ($this->validateShelfCapacity($shelf, $segment, $layer)) {
-                    return redirect()->back()->with('error', 'A quantidade máxima de produtos para esta camada foi atingida.');
+            if ($request->has('invert')) { 
+                $segments = $request->get('segments', []);
+                foreach ($segments as $ordering => $segmentData) { 
+                    $segment = Segment::find(data_get($segmentData, 'id'));
+                    if ($segment) {
+                        $segment->update([
+                            'ordering' => $ordering,
+                        ]);
+                    }
                 }
-            }
-            $shelf->update($validated);
-            if ($segment) {
-                if ($newSegment = $shelf->segments()->create($segment)) {
-                    if ($layer) {
-                        $newSegment->layer()->create($layer);
+            } else {
+                if ($segment && $layer) {
+                    if ($this->validateShelfCapacity($shelf, $segment, $layer)) {
+                        return redirect()->back()->with('error', 'A quantidade máxima de produtos para esta camada foi atingida.');
+                    }
+                }
+                $shelf->update($validated);
+
+                if ($segment) {
+                    if ($newSegment = $shelf->segments()->create($segment)) {
+                        if ($layer) {
+                            $newSegment->layer()->create($layer);
+                        }
                     }
                 }
             }
@@ -119,25 +133,34 @@ class ShelfController extends Controller
         // Calcula a largura total ocupada por todos os segmentos na prateleira
         $totalWidth = 0;
         $lastWidth = 0;
-
         foreach ($shelf->segments as $seg) {
             $productWidth = (float)$seg->layer->product->width;
-            $quantity = isset($seg['id']) && isset($segment['id']) && $seg['id'] === $segment['id']
-                ? $segment['layer']['quantity']
-                : $seg['layer']['quantity'];
-            $spacing = isset($seg['layer']['spacing']) ? (float) $seg['layer']['spacing'] : 0;
-
-            $totalWidth += ($productWidth * $quantity) + $spacing;
+            $quantity =  data_get($seg, 'layer.quantity', 1);
+            $spacing =  data_get($seg, 'layer.spacing', 0);
+            $totalWidth += $productWidth * $quantity;
+            if ($spacing) {
+                $totalWidth += $spacing;
+            }
             $lastWidth = $productWidth;
         }
 
         // Adiciona a largura do novo segmento/camada se fornecido
 
         if ($layer) {
-            $productWidth = (float)$layer['product']['width'];
-            $quantity = $segment['layer']['quantity'];
-            $spacing = isset($layer['spacing']) ? (float) $layer['spacing'] : 0;
-            $totalWidth += ($productWidth * $quantity) + $spacing;
+            $product = Product::find(data_get($layer, 'product_id'));
+            if (!$product) {
+                return "Produto não encontrado.";
+            }
+            $productWidth = (float)$product->width;
+            $quantity = data_get($layer, 'quantity', 1);
+            if ($quantity <= 0) {
+                return "A quantidade deve ser maior que zero.";
+            }
+            $spacing =  data_get($layer, 'spacing', 0);
+            $totalWidth += $productWidth * $quantity;
+            if ($spacing) {
+                $totalWidth += $spacing;
+            }
         }
         // Verifica se a largura total excede a largura disponível na seção
         $sectionWidth = $shelf->section->width - $lastWidth;

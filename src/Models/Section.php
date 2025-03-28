@@ -63,7 +63,7 @@ class Section extends Model
 
     public function shelves(): HasMany
     {
-        return $this->hasMany(Shelf::class);
+        return $this->hasMany(Shelf::class)->orderBy('ordering');
     }
 
     /**

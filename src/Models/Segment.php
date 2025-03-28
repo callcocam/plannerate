@@ -30,7 +30,7 @@ class Segment extends Model
 
     public function layer()
     {
-        return $this->hasOne(Layer::class);
+        return $this->hasOne(Layer::class)->orderBy('ordering');
     }
 
     public function shelf()

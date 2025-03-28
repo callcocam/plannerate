@@ -42,6 +42,6 @@ class Shelf extends Model
 
     public function segments()
     {
-        return $this->hasMany(Segment::class);
+        return $this->hasMany(Segment::class)->orderBy('ordering');
     }
 }

@@ -333,9 +333,9 @@ const updateSegment = (updatedShelf: ShelfType): void => {
  */
 const updateShelf = (shelf: ShelfWithSection): void => {
     const data = { ...shelf };
-    delete data.settings;
-
+    delete data.settings; 
     router.put(`/shelves/${shelf.id}`, data, {
+        preserveState: data.preserveState,
         preserveScroll: true,
         onError: (errors) => {
             console.error('Falha ao atualizar prateleira:', errors);
