@@ -71,8 +71,7 @@ watch(
     (newSections) => {
         if (newSections) {
             const rawNewSections = JSON.parse(JSON.stringify(newSections));
-            const rawCurrentSections = JSON.parse(JSON.stringify(localSections.value));
-
+            const rawCurrentSections = JSON.parse(JSON.stringify(localSections.value)); 
             if (JSON.stringify(rawNewSections) !== JSON.stringify(rawCurrentSections)) {
                 localSections.value = rawNewSections;
             }
@@ -333,8 +332,8 @@ const updateSegment = (updatedShelf: ShelfType): void => {
  */
 const updateShelf = (shelf: ShelfWithSection): void => {
     const data = { ...shelf };
-    delete data.settings; 
-    router.put(`/shelves/${shelf.id}`, data, {
+    delete data.settings;
+    router.put(route('shelves.update', shelf.id), data, {
         preserveState: data.preserveState,
         preserveScroll: true,
         onError: (errors) => {

@@ -140,6 +140,8 @@
 
         <!-- Slide-over de produtos -->
         <ProductDrawer v-model:open="showProductDrawer" @select-product="handleProductSelect" />
+
+        <DragDebug />
     </div>
 </template>
 
@@ -153,6 +155,7 @@ import AddPlanogramModal from './AddPlanogramModal.vue';
 import MovableContainer from './MovableContainer.vue';
 import ProductDrawer from './ProductDrawer.vue';
 import SectionList from './SectionList.vue';
+import   DragDebug   from './DragDebug.vue';
 
 // Props do componente
 const props = defineProps({
